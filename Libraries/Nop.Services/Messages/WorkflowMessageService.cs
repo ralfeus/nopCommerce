@@ -71,6 +71,11 @@ namespace Nop.Services.Messages
             string attachmentFilePath = null, string attachmentFileName = null,
             string replyToEmailAddress = null, string replyToName = null)
         {
+            if (messageTemplate == null)
+                throw new ArgumentNullException("messageTemplate");
+            if (emailAccount == null)
+                throw new ArgumentNullException("emailAccount");
+
             //retrieve localized message template data
             var bcc = messageTemplate.GetLocalized(mt => mt.BccEmailAddresses, languageId);
             var subject = messageTemplate.GetLocalized(mt => mt.Subject, languageId);
@@ -79,6 +84,9 @@ namespace Nop.Services.Messages
             //Replace subject and body tokens 
             var subjectReplaced = _tokenizer.Replace(subject, tokens, false);
             var bodyReplaced = _tokenizer.Replace(body, tokens, true);
+
+            //limit name length
+            toName = CommonHelper.EnsureMaximumLength(toName, 300);
             
             var email = new QueuedEmail
             {
@@ -97,7 +105,9 @@ namespace Nop.Services.Messages
                 AttachmentFileName = attachmentFileName,
                 AttachedDownloadId = messageTemplate.AttachedDownloadId,
                 CreatedOnUtc = DateTime.UtcNow,
-                EmailAccountId = emailAccount.Id
+                EmailAccountId = emailAccount.Id,
+                DontSendBeforeDateUtc = !messageTemplate.DelayBeforeSend.HasValue ? null
+                    : (DateTime?)(DateTime.UtcNow + TimeSpan.FromHours(messageTemplate.DelayPeriod.ToHours(messageTemplate.DelayBeforeSend.Value)))
             };
 
             _queuedEmailService.InsertQueuedEmail(email);
@@ -122,8 +132,12 @@ namespace Nop.Services.Messages
 
         protected virtual EmailAccount GetEmailAccountOfMessageTemplate(MessageTemplate messageTemplate, int languageId)
         {
-            var emailAccounId = messageTemplate.GetLocalized(mt => mt.EmailAccountId, languageId);
-            var emailAccount = _emailAccountService.GetEmailAccountById(emailAccounId);
+            var emailAccountId = messageTemplate.GetLocalized(mt => mt.EmailAccountId, languageId);
+            //some 0 validation (for localizable "Email account" dropdownlist which saves 0 if "Standard" value is chosen)
+            if (emailAccountId == 0)
+                emailAccountId = messageTemplate.EmailAccountId;
+
+            var emailAccount = _emailAccountService.GetEmailAccountById(emailAccountId);
             if (emailAccount == null)
                 emailAccount = _emailAccountService.GetEmailAccountById(_emailAccountSettings.DefaultEmailAccountId);
             if (emailAccount == null)
@@ -713,6 +727,45 @@ namespace Nop.Services.Messages
         }
 
         /// <summary>
+        /// Sends an order refunded notification to a store owner
+        /// </summary>
+        /// <param name="order">Order instance</param>
+        /// <param name="refundedAmount">Amount refunded</param>
+        /// <param name="languageId">Message language identifier</param>
+        /// <returns>Queued email identifier</returns>
+        public virtual int SendOrderRefundedStoreOwnerNotification(Order order, decimal refundedAmount, int languageId)
+        {
+            if (order == null)
+                throw new ArgumentNullException("order");
+
+            var store = _storeService.GetStoreById(order.StoreId) ?? _storeContext.CurrentStore;
+            languageId = EnsureLanguageIsActive(languageId, store.Id);
+
+            var messageTemplate = GetActiveMessageTemplate("OrderRefunded.StoreOwnerNotification", store.Id);
+            if (messageTemplate == null)
+                return 0;
+
+            //email account
+            var emailAccount = GetEmailAccountOfMessageTemplate(messageTemplate, languageId);
+
+            //tokens
+            var tokens = new List<Token>();
+            _messageTokenProvider.AddStoreTokens(tokens, store, emailAccount);
+            _messageTokenProvider.AddOrderTokens(tokens, order, languageId);
+            _messageTokenProvider.AddOrderRefundedTokens(tokens, order, refundedAmount);
+            _messageTokenProvider.AddCustomerTokens(tokens, order.Customer);
+
+            //event notification
+            _eventPublisher.MessageTokensAdded(messageTemplate, tokens);
+
+            var toEmail = emailAccount.Email;
+            var toName = emailAccount.DisplayName;
+            return SendNotification(messageTemplate, emailAccount,
+                languageId, tokens,
+                toEmail, toName);
+        }
+
+        /// <summary>
         /// Sends an order refunded notification to a customer
         /// </summary>
         /// <param name="order">Order instance</param>
@@ -1220,6 +1273,83 @@ namespace Nop.Services.Messages
         #region Misc
 
         /// <summary>
+        /// Sends 'New vendor account submitted' message to a store owner
+        /// </summary>
+        /// <param name="customer">Customer</param>
+        /// <param name="vendor">Vendor</param>
+        /// <param name="languageId">Message language identifier</param>
+        /// <returns>Queued email identifier</returns>
+        public virtual int SendNewVendorAccountApplyStoreOwnerNotification(Customer customer, Vendor vendor, int languageId)
+        {
+            if (customer == null)
+                throw new ArgumentNullException("customer");
+
+            if (vendor == null)
+                throw new ArgumentNullException("vendor");
+
+            var store = _storeContext.CurrentStore;
+            languageId = EnsureLanguageIsActive(languageId, store.Id);
+
+            var messageTemplate = GetActiveMessageTemplate("VendorAccountApply.StoreOwnerNotification", store.Id);
+            if (messageTemplate == null)
+                return 0;
+
+            //email account
+            var emailAccount = GetEmailAccountOfMessageTemplate(messageTemplate, languageId);
+
+            //tokens
+            var tokens = new List<Token>();
+            _messageTokenProvider.AddStoreTokens(tokens, store, emailAccount);
+            _messageTokenProvider.AddCustomerTokens(tokens, customer);
+            _messageTokenProvider.AddVendorTokens(tokens, vendor);
+
+            //event notification
+            _eventPublisher.MessageTokensAdded(messageTemplate, tokens);
+
+            var toEmail = emailAccount.Email;
+            var toName = emailAccount.DisplayName;
+            return SendNotification(messageTemplate, emailAccount,
+                languageId, tokens,
+                toEmail, toName);
+        }
+
+        /// <summary>
+        /// Sends 'Vendor information changed' message to a store owner
+        /// </summary>
+        /// <param name="vendor">Vendor</param>
+        /// <param name="languageId">Message language identifier</param>
+        /// <returns>Queued email identifier</returns>
+        public virtual int SendVendorInformationChangeNotification(Vendor vendor, int languageId)
+        {
+            if (vendor == null)
+                throw new ArgumentNullException("vendor");
+
+            var store = _storeContext.CurrentStore;
+            languageId = EnsureLanguageIsActive(languageId, store.Id);
+
+            var messageTemplate = GetActiveMessageTemplate("VendorInformationChange.StoreOwnerNotification", store.Id);
+            if (messageTemplate == null)
+                return 0;
+
+            //email account
+            var emailAccount = GetEmailAccountOfMessageTemplate(messageTemplate, languageId);
+
+            //tokens
+            var tokens = new List<Token>();
+            _messageTokenProvider.AddStoreTokens(tokens, store, emailAccount);
+            _messageTokenProvider.AddVendorTokens(tokens, vendor);
+
+            //event notification
+            _eventPublisher.MessageTokensAdded(messageTemplate, tokens);
+
+            var toEmail = emailAccount.Email;
+            var toName = emailAccount.DisplayName;
+            return SendNotification(messageTemplate, emailAccount,
+                languageId, tokens,
+                toEmail, toName);
+        }
+
+        /// <summary>
         /// Sends a gift card notification
         /// </summary>
         /// <param name="giftCard">Gift card</param>
@@ -1374,7 +1504,7 @@ namespace Nop.Services.Messages
         }
 
         /// <summary>
-        /// Sends a "new VAT sumitted" notification to a store owner
+        /// Sends a "new VAT submitted" notification to a store owner
         /// </summary>
         /// <param name="customer">Customer</param>
         /// <param name="vatName">Received VAT name</param>

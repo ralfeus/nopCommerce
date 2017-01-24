@@ -195,7 +195,7 @@ namespace Nop.Plugin.Shipping.ByWeight.Controllers
             model.To = 1000000;
 
             var shippingMethods = _shippingService.GetAllShippingMethods();
-            if (shippingMethods.Count == 0)
+            if (!shippingMethods.Any())
                 return Content("No shipping methods can be loaded");
 
             //stores
@@ -211,7 +211,7 @@ namespace Nop.Plugin.Shipping.ByWeight.Controllers
                 model.AvailableShippingMethods.Add(new SelectListItem { Text = sm.Name, Value = sm.Id.ToString() });
             //countries
             model.AvailableCountries.Add(new SelectListItem { Text = "*", Value = "0" });
-            var countries = _countryService.GetAllCountries(true);
+            var countries = _countryService.GetAllCountries(showHidden: true);
             foreach (var c in countries)
                 model.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
             //states
@@ -281,7 +281,7 @@ namespace Nop.Plugin.Shipping.ByWeight.Controllers
             };
 
             var shippingMethods = _shippingService.GetAllShippingMethods();
-            if (shippingMethods.Count == 0)
+            if (!shippingMethods.Any())
                 return Content("No shipping methods can be loaded");
 
             var selectedStore = _storeService.GetStoreById(sbw.StoreId);
@@ -302,11 +302,11 @@ namespace Nop.Plugin.Shipping.ByWeight.Controllers
                 model.AvailableShippingMethods.Add(new SelectListItem { Text = sm.Name, Value = sm.Id.ToString(), Selected = (selectedShippingMethod != null && sm.Id == selectedShippingMethod.Id) });
             //countries
             model.AvailableCountries.Add(new SelectListItem { Text = "*", Value = "0" });
-            var countries = _countryService.GetAllCountries(true);
+            var countries = _countryService.GetAllCountries(showHidden: true);
             foreach (var c in countries)
                 model.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (selectedCountry != null && c.Id == selectedCountry.Id) });
             //states
-            var states = selectedCountry != null ? _stateProvinceService.GetStateProvincesByCountryId(selectedCountry.Id, true).ToList() : new List<StateProvince>();
+            var states = selectedCountry != null ? _stateProvinceService.GetStateProvincesByCountryId(selectedCountry.Id, showHidden: true).ToList() : new List<StateProvince>();
             model.AvailableStates.Add(new SelectListItem { Text = "*", Value = "0" });
             foreach (var s in states)
                 model.AvailableStates.Add(new SelectListItem { Text = s.Name, Value = s.Id.ToString(), Selected = (selectedState != null && s.Id == selectedState.Id) });

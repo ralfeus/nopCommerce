@@ -7,10 +7,12 @@ using Nop.Core.Data;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Discounts;
+using Nop.Core.Infrastructure;
 using Nop.Core.Plugins;
 using Nop.Services.Common;
 using Nop.Services.Discounts;
 using Nop.Services.Events;
+using Nop.Services.Localization;
 using Nop.Tests;
 using NUnit.Framework;
 using Rhino.Mocks;
@@ -25,6 +27,7 @@ namespace Nop.Services.Tests.Discounts
         private IRepository<DiscountUsageHistory> _discountUsageHistoryRepo;
         private IEventPublisher _eventPublisher;
         private IGenericAttributeService _genericAttributeService;
+        private ILocalizationService _localizationService;
         private IDiscountService _discountService;
         private IStoreContext _storeContext;
         
@@ -69,8 +72,10 @@ namespace Nop.Services.Tests.Discounts
             _discountUsageHistoryRepo = MockRepository.GenerateMock<IRepository<DiscountUsageHistory>>();
             var pluginFinder = new PluginFinder();
             _genericAttributeService = MockRepository.GenerateMock<IGenericAttributeService>();
+            _localizationService = MockRepository.GenerateMock<ILocalizationService>();
             _discountService = new DiscountService(cacheManager, _discountRepo, _discountRequirementRepo,
-                _discountUsageHistoryRepo, _storeContext, _genericAttributeService, pluginFinder, _eventPublisher);
+                _discountUsageHistoryRepo, _storeContext, _genericAttributeService, 
+                _localizationService, pluginFinder, _eventPublisher);
         }
 
         [Test]
@@ -78,7 +83,7 @@ namespace Nop.Services.Tests.Discounts
         {
             var discounts = _discountService.GetAllDiscounts(null);
             discounts.ShouldNotBeNull();
-            (discounts.Count > 0).ShouldBeTrue();
+            (discounts.Any()).ShouldBeTrue();
         }
 
         [Test]
@@ -86,7 +91,7 @@ namespace Nop.Services.Tests.Discounts
         {
             var rules = _discountService.LoadAllDiscountRequirementRules();
             rules.ShouldNotBeNull();
-            (rules.Count > 0).ShouldBeTrue();
+            (rules.Any()).ShouldBeTrue();
         }
 
         [Test]
@@ -133,8 +138,14 @@ namespace Nop.Services.Tests.Discounts
                                     }
                             });
 
-            var result1 = _discountService.IsDiscountValid(discount, customer);
-            result1.ShouldEqual(true);
+            //UNDONE: little workaround here
+            //we have to register "nop_cache_static" cache manager (null manager) from DependencyRegistrar.cs
+            //because DiscountService right now dynamically Resolve<ICacheManager>("nop_cache_static")
+            //we cannot inject it because DiscountService already has "per-request" cache manager injected 
+            EngineContext.Initialize(false);
+            //EngineContext.Current.ContainerManager.Expect(x => x.Resolve<ICacheManager>("nop_cache_static")).Return(new NopNullCache());
+            
+            _discountService.ValidateDiscount(discount, customer).IsValid.ShouldEqual(true);
         }
 
 
@@ -174,8 +185,7 @@ namespace Nop.Services.Tests.Discounts
                                         Value = "CouponCode 2"
                                     }
                             });
-            var result2 = _discountService.IsDiscountValid(discount, customer);
-            result2.ShouldEqual(false);
+            _discountService.ValidateDiscount(discount, customer).IsValid.ShouldEqual(false);
         }
 
         [Test]
@@ -204,12 +214,10 @@ namespace Nop.Services.Tests.Discounts
                 LastActivityDateUtc = new DateTime(2010, 01, 02)
             };
 
-            var result1 = _discountService.IsDiscountValid(discount, customer);
-            result1.ShouldEqual(true);
+            _discountService.ValidateDiscount(discount, customer).IsValid.ShouldEqual(true);
 
             discount.StartDateUtc = DateTime.UtcNow.AddDays(1);
-            var result2 = _discountService.IsDiscountValid(discount, customer);
-            result2.ShouldEqual(false);
+            _discountService.ValidateDiscount(discount, customer).IsValid.ShouldEqual(false);
         }
     }
 }

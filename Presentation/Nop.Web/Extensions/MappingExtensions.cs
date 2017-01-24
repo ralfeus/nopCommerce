@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
+using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
+using Nop.Core.Infrastructure;
 using Nop.Services.Common;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
@@ -72,6 +74,7 @@ namespace Nop.Web.Extensions
         /// <param name="loadCountries">A function to load countries  (used to prepare a select list). null to don't prepare the list.</param>
         /// <param name="prePopulateWithCustomerFields">A value indicating whether to pre-populate an address with customer fields entered during registration. It's used only when "address" parameter is set to "null"</param>
         /// <param name="customer">Customer record which will be used to pre-populate address. Used only when "prePopulateWithCustomerFields" is "true".</param>
+        /// <param name="overrideAttributesXml">When specified we do not use attributes of an address; if null, then already saved ones are used</param>
         public static void PrepareModel(this AddressModel model,
             Address address, bool excludeProperties, 
             AddressSettings addressSettings,
@@ -82,7 +85,8 @@ namespace Nop.Web.Extensions
             IAddressAttributeFormatter addressAttributeFormatter = null,
             Func<IList<Country>> loadCountries = null,
             bool prePopulateWithCustomerFields = false,
-            Customer customer = null)
+            Customer customer = null,
+            string overrideAttributesXml = "")
         {
             if (model == null)
                 throw new ArgumentNullException("model");
@@ -155,10 +159,11 @@ namespace Nop.Web.Extensions
                     if (stateProvinceService == null)
                         throw new ArgumentNullException("stateProvinceService");
 
+                    var languageId = EngineContext.Current.Resolve<IWorkContext>().WorkingLanguage.Id;
                     var states = stateProvinceService
-                        .GetStateProvincesByCountryId(model.CountryId.HasValue ? model.CountryId.Value : 0)
+                        .GetStateProvincesByCountryId(model.CountryId.HasValue ? model.CountryId.Value : 0, languageId)
                         .ToList();
-                    if (states.Count > 0)
+                    if (states.Any())
                     {
                         model.AvailableStates.Add(new SelectListItem { Text = localizationService.GetResource("Address.SelectState"), Value = "0" });
 
@@ -205,7 +210,7 @@ namespace Nop.Web.Extensions
             //customer attribute services
             if (addressAttributeService != null && addressAttributeParser != null)
             {
-                PrepareCustomAddressAttributes(model, address, addressAttributeService, addressAttributeParser);
+                PrepareCustomAddressAttributes(model, address, addressAttributeService, addressAttributeParser, overrideAttributesXml);
             }
             if (addressAttributeFormatter != null && address != null)
             {
@@ -215,7 +220,8 @@ namespace Nop.Web.Extensions
         private static void PrepareCustomAddressAttributes(this AddressModel model, 
             Address address,
             IAddressAttributeService addressAttributeService,
-            IAddressAttributeParser addressAttributeParser)
+            IAddressAttributeParser addressAttributeParser,
+            string overrideAttributesXml = "")
         {
             if (addressAttributeService == null)
                 throw new ArgumentNullException("addressAttributeService");
@@ -251,7 +257,9 @@ namespace Nop.Web.Extensions
                 }
 
                 //set already selected attributes
-                var selectedAddressAttributes = address != null ? address.CustomAttributes : null;
+                var selectedAddressAttributes = !String.IsNullOrEmpty(overrideAttributesXml) ?
+                    overrideAttributesXml :
+                    (address != null ? address.CustomAttributes : null);
                 switch (attribute.AttributeControlType)
                 {
                     case AttributeControlType.DropdownList:
@@ -285,12 +293,13 @@ namespace Nop.Web.Extensions
                             if (!String.IsNullOrEmpty(selectedAddressAttributes))
                             {
                                 var enteredText = addressAttributeParser.ParseValues(selectedAddressAttributes, attribute.Id);
-                                if (enteredText.Count > 0)
+                                if (enteredText.Any())
                                     attributeModel.DefaultValue = enteredText[0];
                             }
                         }
                         break;
                     case AttributeControlType.ColorSquares:
+                    case AttributeControlType.ImageSquares:
                     case AttributeControlType.Datepicker:
                     case AttributeControlType.FileUpload:
                     default:

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Web;
@@ -32,6 +31,7 @@ using Nop.Services.Events;
 using Nop.Services.ExportImport;
 using Nop.Services.Forums;
 using Nop.Services.Helpers;
+using Nop.Services.Infrastructure;
 using Nop.Services.Installation;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
@@ -55,9 +55,18 @@ using Nop.Web.Framework.UI;
 
 namespace Nop.Web.Framework
 {
+    /// <summary>
+    /// Dependency registrar
+    /// </summary>
     public class DependencyRegistrar : IDependencyRegistrar
     {
-        public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder)
+        /// <summary>
+        /// Register services and interfaces
+        /// </summary>
+        /// <param name="builder">Container builder</param>
+        /// <param name="typeFinder">Type finder</param>
+        /// <param name="config">Config</param>
+        public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //HTTP context and other related stuff
             builder.Register(c => 
@@ -118,10 +127,26 @@ namespace Nop.Web.Framework
             builder.RegisterType<PluginFinder>().As<IPluginFinder>().InstancePerLifetimeScope();
             builder.RegisterType<OfficialFeedManager>().As<IOfficialFeedManager>().InstancePerLifetimeScope();
 
-            //cache manager
-            builder.RegisterType<MemoryCacheManager>().As<ICacheManager>().Named<ICacheManager>("nop_cache_static").SingleInstance();
+            //cache managers
+            if (config.RedisCachingEnabled)
+            {
+                builder.RegisterType<RedisConnectionWrapper>().As<IRedisConnectionWrapper>().SingleInstance();
+                builder.RegisterType<RedisCacheManager>().As<ICacheManager>().Named<ICacheManager>("nop_cache_static").InstancePerLifetimeScope();
+            }
+            else
+            {
+                builder.RegisterType<MemoryCacheManager>().As<ICacheManager>().Named<ICacheManager>("nop_cache_static").SingleInstance();
+            }
             builder.RegisterType<PerRequestCacheManager>().As<ICacheManager>().Named<ICacheManager>("nop_cache_per_request").InstancePerLifetimeScope();
 
+            if (config.RunOnAzureWebsites)
+            {
+                builder.RegisterType<AzureWebsitesMachineNameProvider>().As<IMachineNameProvider>().SingleInstance();
+            }
+            else
+            {
+                builder.RegisterType<DefaultMachineNameProvider>().As<IMachineNameProvider>().SingleInstance();
+            }
 
             //work context
             builder.RegisterType<WebWorkContext>().As<IWorkContext>().InstancePerLifetimeScope();
@@ -145,7 +170,7 @@ namespace Nop.Web.Framework
             builder.RegisterType<CategoryTemplateService>().As<ICategoryTemplateService>().InstancePerLifetimeScope();
             builder.RegisterType<ManufacturerTemplateService>().As<IManufacturerTemplateService>().InstancePerLifetimeScope();
             builder.RegisterType<TopicTemplateService>().As<ITopicTemplateService>().InstancePerLifetimeScope();
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<ProductTagService>().As<IProductTagService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
@@ -168,15 +193,15 @@ namespace Nop.Web.Framework
             builder.RegisterType<CustomerRegistrationService>().As<ICustomerRegistrationService>().InstancePerLifetimeScope();
             builder.RegisterType<CustomerReportService>().As<ICustomerReportService>().InstancePerLifetimeScope();
 
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<PermissionService>().As<IPermissionService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<AclService>().As<IAclService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<PriceCalculationService>().As<IPriceCalculationService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
@@ -188,7 +213,7 @@ namespace Nop.Web.Framework
             builder.RegisterType<StateProvinceService>().As<IStateProvinceService>().InstancePerLifetimeScope();
 
             builder.RegisterType<StoreService>().As<IStoreService>().InstancePerLifetimeScope();
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<StoreMappingService>().As<IStoreMappingService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
@@ -196,25 +221,36 @@ namespace Nop.Web.Framework
             builder.RegisterType<DiscountService>().As<IDiscountService>().InstancePerLifetimeScope();
 
 
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<SettingService>().As<ISettingService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
             builder.RegisterSource(new SettingsSource());
 
-            //pass MemoryCacheManager as cacheManager (cache locales between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<LocalizationService>().As<ILocalizationService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
 
-            //pass MemoryCacheManager as cacheManager (cache locales between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<LocalizedEntityService>().As<ILocalizedEntityService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
             builder.RegisterType<LanguageService>().As<ILanguageService>().InstancePerLifetimeScope();
 
             builder.RegisterType<DownloadService>().As<IDownloadService>().InstancePerLifetimeScope();
-            builder.RegisterType<PictureService>().As<IPictureService>().InstancePerLifetimeScope();
+            //picture service
+            var useAzureBlobStorage = !String.IsNullOrEmpty(config.AzureBlobStorageConnectionString);
+            if (useAzureBlobStorage)
+            {
+                //Windows Azure BLOB
+                builder.RegisterType<AzurePictureService>().As<IPictureService>().InstancePerLifetimeScope();
+            }
+            else
+            {
+                //standard file system
+                builder.RegisterType<PictureService>().As<IPictureService>().InstancePerLifetimeScope();
+            }
 
             builder.RegisterType<MessageTemplateService>().As<IMessageTemplateService>().InstancePerLifetimeScope();
             builder.RegisterType<QueuedEmailService>().As<IQueuedEmailService>().InstancePerLifetimeScope();
@@ -234,7 +270,10 @@ namespace Nop.Web.Framework
             builder.RegisterType<OrderReportService>().As<IOrderReportService>().InstancePerLifetimeScope();
             builder.RegisterType<OrderProcessingService>().As<IOrderProcessingService>().InstancePerLifetimeScope();
             builder.RegisterType<OrderTotalCalculationService>().As<IOrderTotalCalculationService>().InstancePerLifetimeScope();
+            builder.RegisterType<ReturnRequestService>().As<IReturnRequestService>().InstancePerLifetimeScope();
+            builder.RegisterType<RewardPointService>().As<IRewardPointService>().InstancePerLifetimeScope();
             builder.RegisterType<ShoppingCartService>().As<IShoppingCartService>().InstancePerLifetimeScope();
+            builder.RegisterType<CustomNumberFormatter>().As<ICustomNumberFormatter>().InstancePerLifetimeScope();
 
             builder.RegisterType<PaymentService>().As<IPaymentService>().InstancePerLifetimeScope();
 
@@ -242,7 +281,7 @@ namespace Nop.Web.Framework
             builder.RegisterType<FormsAuthenticationService>().As<IAuthenticationService>().InstancePerLifetimeScope();
 
 
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<UrlRecordService>().As<IUrlRecordService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
@@ -252,11 +291,10 @@ namespace Nop.Web.Framework
 
             builder.RegisterType<TaxCategoryService>().As<ITaxCategoryService>().InstancePerLifetimeScope();
             builder.RegisterType<TaxService>().As<ITaxService>().InstancePerLifetimeScope();
-            builder.RegisterType<TaxCategoryService>().As<ITaxCategoryService>().InstancePerLifetimeScope();
 
             builder.RegisterType<DefaultLogger>().As<ILogger>().InstancePerLifetimeScope();
 
-            //pass MemoryCacheManager as cacheManager (cache settings between requests)
+            //use static cache (between HTTP requests)
             builder.RegisterType<CustomerActivityService>().As<ICustomerActivityService>()
                 .WithParameter(ResolvedParameter.ForNamed<ICacheManager>("nop_cache_static"))
                 .InstancePerLifetimeScope();
@@ -265,8 +303,7 @@ namespace Nop.Web.Framework
             if (!databaseInstalled)
             {
                 //installation service
-                if (!String.IsNullOrEmpty(ConfigurationManager.AppSettings["UseFastInstallationService"]) &&
-                    Convert.ToBoolean(ConfigurationManager.AppSettings["UseFastInstallationService"]))
+                if (config.UseFastInstallationService)
                 {
                     builder.RegisterType<SqlFileInstallationService>().As<IInstallationService>().InstancePerLifetimeScope();
                 }
@@ -320,6 +357,9 @@ namespace Nop.Web.Framework
 
         }
 
+        /// <summary>
+        /// Order of this dependency registrar implementation
+        /// </summary>
         public int Order
         {
             get { return 0; }

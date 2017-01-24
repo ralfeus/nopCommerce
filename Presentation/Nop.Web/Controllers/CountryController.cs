@@ -5,6 +5,7 @@ using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
+using Nop.Web.Framework;
 using Nop.Web.Infrastructure.Cache;
 
 namespace Nop.Web.Controllers
@@ -40,6 +41,8 @@ namespace Nop.Web.Controllers
 
         #region States / provinces
 
+        //available even when navigation is not allowed
+        [PublicStoreAllowNavigation(true)]
         [AcceptVerbs(HttpVerbs.Get)]
         public ActionResult GetStatesByCountryId(string countryId, bool addSelectStateItem)
         {
@@ -51,7 +54,7 @@ namespace Nop.Web.Controllers
             var cacheModel = _cacheManager.Get(cacheKey, () =>
             {
                 var country = _countryService.GetCountryById(Convert.ToInt32(countryId));
-                var states = _stateProvinceService.GetStateProvincesByCountryId(country != null ? country.Id : 0).ToList();
+                var states = _stateProvinceService.GetStateProvincesByCountryId(country != null ? country.Id : 0, _workContext.WorkingLanguage.Id).ToList();
                 var result = (from s in states
                               select new { id = s.Id, name = s.GetLocalized(x => x.Name) })
                               .ToList();
@@ -72,7 +75,7 @@ namespace Nop.Web.Controllers
                 else
                 {
                     //some country is selected
-                    if (result.Count == 0)
+                    if (!result.Any())
                     {
                         //country does not have states
                         result.Insert(0, new { id = 0, name = _localizationService.GetResource("Address.OtherNonUS") });

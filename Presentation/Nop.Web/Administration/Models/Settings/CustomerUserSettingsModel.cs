@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Web.Mvc;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
@@ -53,6 +54,9 @@ namespace Nop.Admin.Models.Settings
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.NotifyNewCustomerRegistration")]
             public bool NotifyNewCustomerRegistration { get; set; }
 
+            [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.RequireRegistrationForDownloadableProducts")]
+            public bool RequireRegistrationForDownloadableProducts { get; set; }
+
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.HideDownloadableProductsTab")]
             public bool HideDownloadableProductsTab { get; set; }
 
@@ -86,7 +90,8 @@ namespace Nop.Admin.Models.Settings
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.StoreLastVisitedPage")]
             public bool StoreLastVisitedPage { get; set; }
 
-
+            [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.EnteringEmailTwice")]
+            public bool EnteringEmailTwice { get; set; }
 
 
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.GenderEnabled")]
@@ -96,6 +101,9 @@ namespace Nop.Admin.Models.Settings
             public bool DateOfBirthEnabled { get; set; }
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.DateOfBirthRequired")]
             public bool DateOfBirthRequired { get; set; }
+            [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.DateOfBirthMinimumAge")]
+            [UIHint("Int32Nullable")]
+            public int? DateOfBirthMinimumAge { get; set; }
 
             [NopResourceDisplayName("Admin.Configuration.Settings.CustomerUser.CompanyEnabled")]
             public bool CompanyEnabled { get; set; }

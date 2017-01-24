@@ -138,6 +138,10 @@ namespace Nop.Core.Domain.Catalog
         /// Gets or sets the gift card type identifier
         /// </summary>
         public int GiftCardTypeId { get; set; }
+        /// <summary>
+        /// Gets or sets gift card amount that can be used after purchase. If not specified, then product price will be used.
+        /// </summary>
+        public decimal? OverriddenGiftCardAmount { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the product requires that other products are added to the cart (Product X requires Product Y)
@@ -318,6 +322,10 @@ namespace Nop.Core.Domain.Catalog
         /// This option is used only when we have "manage inventory" set to "track inventory by product attributes"
         /// </summary>
         public bool AllowAddingOnlyExistingAttributeCombinations { get; set; }
+        /// <summary>
+        /// Gets or sets a value indicating whether this product is returnable (a customer is allowed to submit return request with this product)
+        /// </summary>
+        public bool NotReturnable { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to disable buy (Add to cart) button
@@ -396,6 +404,20 @@ namespace Nop.Core.Domain.Catalog
         /// Gets or sets a reference unit for PAngV (MeasureWeight entity)
         /// </summary>
         public int BasepriceBaseUnitId { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this product is marked as new
+        /// </summary>
+        public bool MarkAsNew { get; set; }
+        /// <summary>
+        /// Gets or sets the start date and time of the new product (set product as "New" from date). Leave empty to ignore this property
+        /// </summary>
+        public DateTime? MarkAsNewStartDateTimeUtc { get; set; }
+        /// <summary>
+        /// Gets or sets the end date and time of the new product (set product as "New" to date). Leave empty to ignore this property
+        /// </summary>
+        public DateTime? MarkAsNewEndDateTimeUtc { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this product has tier prices configured

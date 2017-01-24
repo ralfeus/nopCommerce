@@ -46,6 +46,11 @@ namespace Nop.Web.Infrastructure
                             "cart/",
                             new { controller = "ShoppingCart", action = "Cart" },
                             new[] { "Nop.Web.Controllers" });
+            //estimate shipping
+            routes.MapLocalizedRoute("EstimateShipping",
+                            "cart/estimateshipping",
+                            new {controller = "ShoppingCart", action = "GetEstimateShipping"},
+                            new[] {"Nop.Web.Controllers"});
             //wishlist
             routes.MapLocalizedRoute("Wishlist",
                             "wishlist/{customerGuid}",
@@ -111,10 +116,10 @@ namespace Nop.Web.Infrastructure
                             "recentlyviewedproducts/",
                             new { controller = "Product", action = "RecentlyViewedProducts" },
                             new[] { "Nop.Web.Controllers" });
-            //recently added products
-            routes.MapLocalizedRoute("RecentlyAddedProducts",
+            //new products
+            routes.MapLocalizedRoute("NewProducts",
                             "newproducts/",
-                            new { controller = "Product", action = "RecentlyAddedProducts" },
+                            new { controller = "Product", action = "NewProducts" },
                             new[] { "Nop.Web.Controllers" });
             //blog
             routes.MapLocalizedRoute("Blog",
@@ -193,10 +198,24 @@ namespace Nop.Web.Infrastructure
                             "productreviews/{productId}",
                             new { controller = "Product", action = "ProductReviews" },
                             new[] { "Nop.Web.Controllers" });
+            routes.MapLocalizedRoute("CustomerProductReviews",
+                            "customer/productreviews",
+                            new { controller = "Product", action = "CustomerProductReviews" },
+                            new[] { "Nop.Web.Controllers" });
+            routes.MapLocalizedRoute("CustomerProductReviewsPaged",
+                            "customer/productreviews/page/{page}",
+                            new { controller = "Product", action = "CustomerProductReviews" },
+                            new { page = @"\d+" },
+                            new[] { "Nop.Web.Controllers" });
             //back in stock notifications
             routes.MapLocalizedRoute("BackInStockSubscribePopup",
                             "backinstocksubscribe/{productId}",
                             new { controller = "BackInStockSubscription", action = "SubscribePopup" },
+                            new { productId = @"\d+" },
+                            new[] { "Nop.Web.Controllers" });
+            routes.MapLocalizedRoute("BackInStockSubscribeSend",
+                            "backinstocksubscribesend/{productId}",
+                            new { controller = "BackInStockSubscription", action = "SubscribePopupPOST" },
                             new { productId = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             //downloads
@@ -352,6 +371,11 @@ namespace Nop.Web.Infrastructure
                             "rewardpoints/history",
                             new { controller = "Order", action = "CustomerRewardPoints" },
                             new[] { "Nop.Web.Controllers" });
+            routes.MapLocalizedRoute("CustomerRewardPointsPaged",
+                            "rewardpoints/history/page/{page}",
+                            new { controller = "Order", action = "CustomerRewardPoints" },
+                            new { page = @"\d+" },
+                            new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerChangePassword",
                             "customer/changepassword",
                             new { controller = "Customer", action = "ChangePassword" },
@@ -372,11 +396,6 @@ namespace Nop.Web.Infrastructure
                             "boards/forumsubscriptions/{page}",
                             new { controller = "Boards", action = "CustomerForumSubscriptions", page = UrlParameter.Optional },
                             new { page = @"\d+" },
-                            new[] { "Nop.Web.Controllers" });
-            routes.MapLocalizedRoute("CustomerAddressDelete",
-                            "customer/addressdelete/{addressId}",
-                            new { controller = "Customer", action = "AddressDelete" },
-                            new { addressId = @"\d+" },
                             new[] { "Nop.Web.Controllers" });
             routes.MapLocalizedRoute("CustomerAddressEdit",
                             "customer/addressedit/{addressId}",
@@ -454,6 +473,16 @@ namespace Nop.Web.Infrastructure
                             "contactvendor/{vendorId}",
                             new { controller = "Common", action = "ContactVendor" },
                             new[] { "Nop.Web.Controllers" });
+            //apply for vendor account
+            routes.MapLocalizedRoute("ApplyVendorAccount",
+                            "vendor/apply",
+                            new { controller = "Vendor", action = "ApplyVendor" },
+                            new[] { "Nop.Web.Controllers" });
+            //vendor info
+            routes.MapLocalizedRoute("CustomerVendorInfo",
+                            "customer/vendorinfo",
+                            new { controller = "Vendor", action = "Info" },
+                            new[] { "Nop.Web.Controllers" });
 
             //poll vote AJAX link
             routes.MapLocalizedRoute("PollVote",
@@ -471,10 +500,10 @@ namespace Nop.Web.Infrastructure
                             new { controller = "Product", action = "ClearCompareList" },
                             new[] { "Nop.Web.Controllers" });
 
-            //recently added products RSS
-            routes.MapLocalizedRoute("RecentlyAddedProductsRSS",
+            //new RSS
+            routes.MapLocalizedRoute("NewProductsRSS",
                             "newproducts/rss",
-                            new { controller = "Product", action = "RecentlyAddedProductsRss" },
+                            new { controller = "Product", action = "NewProductsRss" },
                             new[] { "Nop.Web.Controllers" });
             
             //get state list by country ID  (AJAX link)

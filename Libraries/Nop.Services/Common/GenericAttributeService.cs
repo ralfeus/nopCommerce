@@ -79,6 +79,27 @@ namespace Nop.Services.Common
         }
 
         /// <summary>
+        /// Deletes an attributes
+        /// </summary>
+        /// <param name="attributes">Attributes</param>
+        public virtual void DeleteAttributes(IList<GenericAttribute> attributes)
+        {
+            if (attributes == null)
+                throw new ArgumentNullException("attributes");
+
+            _genericAttributeRepository.Delete(attributes);
+
+            //cache
+            _cacheManager.RemoveByPattern(GENERICATTRIBUTE_PATTERN_KEY);
+
+            //event notification
+            foreach (var attribute in attributes)
+            {
+                _eventPublisher.EntityDeleted(attribute);
+            }
+        }
+
+        /// <summary>
         /// Gets an attribute
         /// </summary>
         /// <param name="attributeId">Attribute identifier</param>
@@ -142,7 +163,7 @@ namespace Nop.Services.Common
                             where ga.EntityId == entityId &&
                             ga.KeyGroup == keyGroup
                             select ga;
-                var attributes = query.ToList();
+               var attributes = query.ToList();
                 return attributes;
             });
         }

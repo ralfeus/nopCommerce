@@ -92,18 +92,6 @@ namespace Nop.Data.Tests.Customers
             fromDb.ExternalAuthenticationRecords.First().ExternalIdentifier.ShouldEqual("ExternalIdentifier 1");
         }
 
-        [Test]
-        public void Can_save_customer_with_rewardPointsHistoryEntry()
-        {
-            var customer = GetTestCustomer();
-            
-            customer.AddRewardPointsHistoryEntry(1, "Points for registration");
-
-            var fromDb = SaveAndLoadEntity(customer);
-            fromDb.ShouldNotBeNull();
-            fromDb.RewardPointsHistory.Count.ShouldEqual(1);
-            fromDb.RewardPointsHistory.First().Points.ShouldEqual(1);
-        }
 
         [Test]
         public void Can_save_and_load_customer_with_address()

@@ -221,11 +221,11 @@ namespace Nop.Services.Directory
         /// <returns>Converted value</returns>
         public virtual decimal ConvertCurrency(decimal amount, Currency sourceCurrencyCode, Currency targetCurrencyCode)
         {
-            if (targetCurrencyCode == null)
+            if (sourceCurrencyCode == null)
                 throw new ArgumentNullException("sourceCurrencyCode");
 
             if (targetCurrencyCode == null)
-                throw new ArgumentNullException("sourceCurrencyCode");
+                throw new ArgumentNullException("targetCurrencyCode");
 
             decimal result = amount;
             if (sourceCurrencyCode.Id == targetCurrencyCode.Id)
@@ -302,17 +302,7 @@ namespace Nop.Services.Directory
                 throw new ArgumentNullException("sourceCurrencyCode");
 
             var primaryStoreCurrency = GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId);
-            if (primaryStoreCurrency == null)
-                throw new Exception("Primary store currency cannot be loaded");
-
-            decimal result = amount;
-            if (result != decimal.Zero && sourceCurrencyCode.Id != primaryStoreCurrency.Id)
-            {
-                decimal exchangeRate = sourceCurrencyCode.Rate;
-                if (exchangeRate == decimal.Zero)
-                    throw new NopException(string.Format("Exchange rate not found for currency [{0}]", sourceCurrencyCode.Name));
-                result = result / exchangeRate;
-            }
+            var result = ConvertCurrency(amount, sourceCurrencyCode, primaryStoreCurrency);
             return result;
         }
 

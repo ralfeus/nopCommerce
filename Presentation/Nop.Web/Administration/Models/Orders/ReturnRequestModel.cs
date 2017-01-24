@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Web.Mvc;
+using FluentValidation.Attributes;
+using Nop.Admin.Validators.Orders;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 
 namespace Nop.Admin.Models.Orders
 {
+    [Validator(typeof(ReturnRequestValidator))]
     public partial class ReturnRequestModel : BaseNopEntityModel
     {
-        [NopResourceDisplayName("Admin.ReturnRequests.Fields.ID")]
-        public override int Id { get; set; }
+        [NopResourceDisplayName("Admin.ReturnRequests.Fields.CustomNumber")]
+        public string CustomNumber { get; set; }
 
         [NopResourceDisplayName("Admin.ReturnRequests.Fields.Order")]
         public int OrderId { get; set; }

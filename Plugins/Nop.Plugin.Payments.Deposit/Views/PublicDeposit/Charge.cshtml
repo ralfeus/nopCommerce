@@ -1,0 +1,66 @@
+﻿@model Nop.Plugin.Payments.Deposit.Models.ChargeModel
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@{
+    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+
+    //title
+    Html.AddTitleParts(T("PageTitle.Account").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-account-page");
+    Html.AppendPageCssClassParts("html-customer-info-page");
+}
+@section left
+{
+    @Html.Action("CustomerNavigation", "Customer")
+}
+<div class="page account-page">
+  <div class="page-body">
+    <div class="section payment-method">
+      @if (Model.PaymentMethods.Count > 0)
+      {
+        using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+            @Html.NopEditorFor(model => model.ChargeAmount)
+             <ul class="method-list">
+               @for (int i = 0; i < Model.PaymentMethods.Count; i++)
+               {
+                   var paymentMethod = Model.PaymentMethods[i];
+                   var paymentMethodName = paymentMethod.Name;
+                   if (!String.IsNullOrEmpty(paymentMethod.Fee))
+                   {
+                       paymentMethodName = T("Checkout.SelectPaymentMethod.MethodAndFee", paymentMethodName, paymentMethod.Fee).Text;
+                   }
+                   <li>
+                     <div class="method-name">
+                       @if (!String.IsNullOrEmpty(paymentMethod.LogoUrl))
+                       {
+                           <div class="payment-logo">
+                             <label for="paymentmethod_@(i)">
+                               <img src="@paymentMethod.LogoUrl" alt="@paymentMethodName"/>
+                             </label>
+                           </div>
+                       }
+                       <div class="payment-details">
+                         <input id="paymentmethod_@(i)" type="radio" name="paymentmethod" value="@(paymentMethod.PaymentMethodSystemName)" checked="@paymentMethod.Selected"/>
+                         <label for="paymentmethod_@(i)">@paymentMethodName</label>
+                       </div>
+                     </div>
+                   </li>
+               }
+             </ul>
+             <div class="buttons">
+               <input type="submit" value="@T("Payment.Deposit.ProceedPayment")" class="active button-1" />
+             </div>
+        }
+      }
+      else
+      {
+          <div class="message-error">
+            @T("Checkout.NoPaymentMethods")
+          </div>
+      }
+    </div>
+  </div>
+</div>

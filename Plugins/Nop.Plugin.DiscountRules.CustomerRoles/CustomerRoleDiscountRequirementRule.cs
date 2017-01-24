@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Nop.Core;
 using Nop.Core.Plugins;
 using Nop.Services.Configuration;
 using Nop.Services.Discounts;
@@ -21,29 +20,31 @@ namespace Nop.Plugin.DiscountRules.CustomerRoles
         /// Check discount requirement
         /// </summary>
         /// <param name="request">Object that contains all information required to check the requirement (Current customer, discount, etc)</param>
-        /// <returns>true - requirement is met; otherwise, false</returns>
-        public bool CheckRequirement(CheckDiscountRequirementRequest request)
+        /// <returns>Result</returns>
+        public DiscountRequirementValidationResult CheckRequirement(DiscountRequirementValidationRequest request)
         {
             if (request == null)
                 throw new ArgumentNullException("request");
 
-            if (request.DiscountRequirement == null)
-                throw new NopException("Discount requirement is not set");
+            //invalid by default
+            var result = new DiscountRequirementValidationResult();
 
             if (request.Customer == null)
-                return false;
+                return result;
 
-
-            var restrictedToCustomerRoleId = _settingService.GetSettingByKey<int>(string.Format("DiscountRequirement.MustBeAssignedToCustomerRole-{0}", request.DiscountRequirement.Id));
-
+            var restrictedToCustomerRoleId = _settingService.GetSettingByKey<int>(string.Format("DiscountRequirement.MustBeAssignedToCustomerRole-{0}", request.DiscountRequirementId));
             if (restrictedToCustomerRoleId == 0)
-                return false;
+                return result;
 
             foreach (var customerRole in request.Customer.CustomerRoles.Where(cr => cr.Active).ToList())
                 if (restrictedToCustomerRoleId == customerRole.Id)
-                    return true;
+                {
+                    //valid
+                    result.IsValid = true;
+                    return result;
+                }
 
-            return false;
+            return result;
         }
 
         /// <summary>

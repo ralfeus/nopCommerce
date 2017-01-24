@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using Nop.Core.Domain.Common;
-using Nop.Core.Domain.Orders;
 
 namespace Nop.Core.Domain.Customers
 {
@@ -131,45 +130,6 @@ namespace Nop.Core.Domain.Customers
 
                 customer.Addresses.Remove(address);
             }
-        }
-
-        #endregion
-
-        #region Reward points
-
-        public static void AddRewardPointsHistoryEntry(this Customer customer, 
-            int points, string message = "", 
-            Order usedWithOrder = null, decimal usedAmount = 0M)
-        {
-            int newPointsBalance = customer.GetRewardPointsBalance() + points;
-
-            var rewardPointsHistory = new RewardPointsHistory
-            {
-                Customer = customer,
-                UsedWithOrder = usedWithOrder,
-                Points = points,
-                PointsBalance = newPointsBalance,
-                UsedAmount = usedAmount,
-                Message = message,
-                CreatedOnUtc = DateTime.UtcNow
-            };
-
-            customer.RewardPointsHistory.Add(rewardPointsHistory);
-        }
-
-        /// <summary>
-        /// Gets reward points balance
-        /// </summary>
-        public static int GetRewardPointsBalance(this Customer customer)
-        {
-            int result = 0;
-            var lastRph = customer.RewardPointsHistory
-                    .OrderByDescending(rph => rph.CreatedOnUtc)
-                    .ThenByDescending(rph => rph.Id)
-                    .FirstOrDefault();
-            if (lastRph != null)
-                result = lastRph.PointsBalance;
-            return result;
         }
 
         #endregion

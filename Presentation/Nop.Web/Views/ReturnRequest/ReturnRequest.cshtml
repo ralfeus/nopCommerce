@@ -5,6 +5,8 @@
 
     //title
     Html.AddTitleParts(T("PageTitle.ReturnItems").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-return-request-page");
 }
 <div class="page return-request-page">
     <div class="page-title">
@@ -21,6 +23,7 @@
         {
             using (Html.BeginForm())
             {
+                @Html.AntiForgeryToken()
             <div class="section">
                 <div class="title">
                     <strong>@T("ReturnRequests.SelectProduct(s)")</strong>
@@ -82,12 +85,26 @@
                 </div>
                 <div class="form-fields">
                     <div class="inputs">
-                        @Html.LabelFor(model => model.ReturnReason, new { }, ":")
-                        @Html.DropDownListFor(model => model.ReturnReason, Model.AvailableReturnReasons, new { @class = "return-reasons" })
+                        @{
+                            var reasonsSelectList = Model.AvailableReturnReasons.Select(x => new SelectListItem
+                            {
+                                Text = x.Name,
+                                Value = x.Id.ToString()
+                            }).ToList();
+                        }
+                        @Html.LabelFor(model => model.ReturnRequestReasonId, new {}, ":")
+                        @Html.DropDownListFor(model => model.ReturnRequestReasonId, reasonsSelectList, new {@class = "return-reasons"})
                     </div>
                     <div class="inputs">
-                        @Html.LabelFor(model => model.ReturnAction, new { }, ":")
-                        @Html.DropDownListFor(model => model.ReturnAction, Model.AvailableReturnActions, new { @class = "return-actions" })
+                        @{
+                            var actionsSelectList = Model.AvailableReturnActions.Select(x => new SelectListItem
+                            {
+                                Text = x.Name,
+                                Value = x.Id.ToString()
+                            }).ToList();
+                        }
+                        @Html.LabelFor(model => model.ReturnRequestActionId, new { }, ":")
+                        @Html.DropDownListFor(model => model.ReturnRequestActionId, actionsSelectList, new { @class = "return-actions" })
                     </div>
                     <div class="inputs">
                         @Html.LabelFor(model => model.Comments, new { }, ":")

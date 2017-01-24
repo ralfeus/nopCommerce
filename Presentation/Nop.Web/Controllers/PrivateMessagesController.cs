@@ -214,6 +214,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost, FormValueRequired("delete-inbox"), ActionName("InboxUpdate")]
+        [PublicAntiForgery]
         public ActionResult DeleteInboxPM(FormCollection formCollection)
         {
             foreach (var key in formCollection.AllKeys)
@@ -242,6 +243,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost, FormValueRequired("mark-unread"), ActionName("InboxUpdate")]
+        [PublicAntiForgery]
         public ActionResult MarkUnread(FormCollection formCollection)
         {
             foreach (var key in formCollection.AllKeys)
@@ -271,6 +273,7 @@ namespace Nop.Web.Controllers
 
         //updates sent items (deletes PrivateMessages)
         [HttpPost, FormValueRequired("delete-sent"), ActionName("SentUpdate")]
+        [PublicAntiForgery]
         public ActionResult DeleteSentPM(FormCollection formCollection)
         {
             foreach (var key in formCollection.AllKeys)
@@ -325,6 +328,7 @@ namespace Nop.Web.Controllers
 
             if (replyToMessageId.HasValue)
             {
+                //reply to a previous PM
                 var replyToPM = _forumService.GetPrivateMessageById(replyToMessageId.Value);
                 if (replyToPM == null)
                 {
@@ -345,6 +349,7 @@ namespace Nop.Web.Controllers
         }
 
         [HttpPost]
+        [PublicAntiForgery]
         public ActionResult SendPM(SendPrivateMessageModel model)
         {
             if (!_forumSettings.AllowPrivateMessages)
@@ -361,9 +366,13 @@ namespace Nop.Web.Controllers
             var replyToPM = _forumService.GetPrivateMessageById(model.ReplyToMessageId);
             if (replyToPM != null)
             {
+                //reply to a previous PM
                 if (replyToPM.ToCustomerId == _workContext.CurrentCustomer.Id || replyToPM.FromCustomerId == _workContext.CurrentCustomer.Id)
                 {
-                    toCustomer = replyToPM.FromCustomer;
+                    //Reply to already sent PM (by current customer) should not be sent to yourself
+                    toCustomer = replyToPM.FromCustomerId == _workContext.CurrentCustomer.Id
+                        ? replyToPM.ToCustomer
+                        : replyToPM.FromCustomer;
                 }
                 else
                 {
@@ -372,6 +381,7 @@ namespace Nop.Web.Controllers
             }
             else
             {
+                //first PM
                 toCustomer = _customerService.GetCustomerById(model.ToCustomerId);
             }
 

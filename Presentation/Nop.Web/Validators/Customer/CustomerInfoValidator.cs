@@ -1,5 +1,8 @@
-﻿using FluentValidation;
+﻿using System;
+using System.Linq;
+using FluentValidation;
 using FluentValidation.Results;
+using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
@@ -8,7 +11,7 @@ using Nop.Web.Models.Customer;
 
 namespace Nop.Web.Validators.Customer
 {
-    public class CustomerInfoValidator : BaseNopValidator<CustomerInfoModel>
+    public partial class CustomerInfoValidator : BaseNopValidator<CustomerInfoModel>
     {
         public CustomerInfoValidator(ILocalizationService localizationService,
             IStateProvinceService stateProvinceService, 
@@ -38,7 +41,7 @@ namespace Nop.Web.Validators.Customer
                 Custom(x =>
                 {
                     //does selected country have states?
-                    var hasStates = stateProvinceService.GetStateProvincesByCountryId(x.CountryId).Count > 0;
+                    var hasStates = stateProvinceService.GetStateProvincesByCountryId(x.CountryId).Any();
                     if (hasStates)
                     {
                         //if yes, then ensure that a state is selected
@@ -50,14 +53,21 @@ namespace Nop.Web.Validators.Customer
                     return null;
                 });
             }
-            if (customerSettings.DateOfBirthRequired && customerSettings.DateOfBirthEnabled)
+            if (customerSettings.DateOfBirthEnabled &&customerSettings.DateOfBirthRequired)
             {
                 Custom(x =>
                 {
                     var dateOfBirth = x.ParseDateOfBirth();
-                    if (dateOfBirth == null)
+                    //entered?
+                    if (!dateOfBirth.HasValue)
                     {
                         return new ValidationFailure("DateOfBirthDay", localizationService.GetResource("Account.Fields.DateOfBirth.Required"));
+                    }
+                    //minimum age
+                    if (customerSettings.DateOfBirthMinimumAge.HasValue &&
+                        CommonHelper.GetDifferenceInYears(dateOfBirth.Value, DateTime.Today) < customerSettings.DateOfBirthMinimumAge.Value)
+                    {
+                        return new ValidationFailure("DateOfBirthDay", string.Format(localizationService.GetResource("Account.Fields.DateOfBirth.MinimumAge"), customerSettings.DateOfBirthMinimumAge.Value));
                     }
                     return null;
                 });

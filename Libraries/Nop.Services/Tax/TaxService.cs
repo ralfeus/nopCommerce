@@ -12,6 +12,7 @@ using Nop.Core.Domain.Tax;
 using Nop.Core.Plugins;
 using Nop.Services.Common;
 using Nop.Services.Directory;
+using Nop.Services.Logging;
 
 namespace Nop.Services.Tax
 {
@@ -28,6 +29,7 @@ namespace Nop.Services.Tax
         private readonly IPluginFinder _pluginFinder;
         private readonly IGeoLookupService _geoLookupService;
         private readonly ICountryService _countryService;
+        private readonly ILogger _logger;
         private readonly CustomerSettings _customerSettings;
         private readonly AddressSettings _addressSettings;
 
@@ -52,6 +54,7 @@ namespace Nop.Services.Tax
             IPluginFinder pluginFinder,
             IGeoLookupService geoLookupService,
             ICountryService countryService,
+            ILogger logger,
             CustomerSettings customerSettings,
             AddressSettings addressSettings)
         {
@@ -61,6 +64,7 @@ namespace Nop.Services.Tax
             this._pluginFinder = pluginFinder;
             this._geoLookupService = geoLookupService;
             this._countryService = countryService;
+            this._logger = logger;
             this._customerSettings = customerSettings;
             this._addressSettings = addressSettings;
         }
@@ -127,14 +131,18 @@ namespace Nop.Services.Tax
         /// <param name="taxCategoryId">Tax category identifier</param>
         /// <param name="customer">Customer</param>
         /// <returns>Package for tax calculation</returns>
-        protected virtual CalculateTaxRequest CreateCalculateTaxRequest(Product product, 
-            int taxCategoryId, Customer customer)
+        protected virtual CalculateTaxRequest CreateCalculateTaxRequest(Product product,
+            int taxCategoryId, Customer customer, decimal price)
         {
             if (customer == null)
                 throw new ArgumentNullException("customer");
 
-            var calculateTaxRequest = new CalculateTaxRequest();
-            calculateTaxRequest.Customer = customer;
+            var calculateTaxRequest = new CalculateTaxRequest
+            {
+                Customer = customer,
+                Product = product,
+                Price = price
+            };
             if (taxCategoryId > 0)
             {
                 calculateTaxRequest.TaxCategoryId = taxCategoryId;
@@ -171,7 +179,7 @@ namespace Nop.Services.Tax
             if (basedOn == TaxBasedOn.ShippingAddress && customer.ShippingAddress == null)
                 basedOn = TaxBasedOn.DefaultAddress;
 
-            Address address = null;
+            Address address;
 
             switch (basedOn)
             {
@@ -220,17 +228,18 @@ namespace Nop.Services.Tax
             }
             return result;
         }
-        
+
         /// <summary>
         /// Gets tax rate
         /// </summary>
         /// <param name="product">Product</param>
         /// <param name="taxCategoryId">Tax category identifier</param>
         /// <param name="customer">Customer</param>
+        /// <param name="price">Price (taxable value)</param>
         /// <param name="taxRate">Calculated tax rate</param>
         /// <param name="isTaxable">A value indicating whether a request is taxable</param>
         protected virtual void GetTaxRate(Product product, int taxCategoryId, 
-            Customer customer, out decimal taxRate, out bool isTaxable)
+            Customer customer, decimal price, out decimal taxRate, out bool isTaxable)
         {
             taxRate = decimal.Zero;
             isTaxable = true;
@@ -241,7 +250,7 @@ namespace Nop.Services.Tax
                 return;
 
             //tax request
-            var calculateTaxRequest = CreateCalculateTaxRequest(product, taxCategoryId, customer);
+            var calculateTaxRequest = CreateCalculateTaxRequest(product, taxCategoryId, customer, price);
 
             //tax exempt
             if (IsTaxExempt(product, calculateTaxRequest.Customer))
@@ -267,6 +276,14 @@ namespace Nop.Services.Tax
                 
                 taxRate = calculateTaxResult.TaxRate;
             }
+            else 
+                if (_taxSettings.LogErrors)
+                {
+                    foreach (var error in calculateTaxResult.Errors)
+                    {
+                        _logger.Error(string.Format("{0} - {1}", activeTaxProvider.PluginDescriptor.FriendlyName, error), null, customer);
+                    }
+                }   
         }
         
 
@@ -382,25 +399,25 @@ namespace Nop.Services.Tax
 
 
             bool isTaxable;
-            GetTaxRate(product, taxCategoryId, customer, out taxRate, out isTaxable);
+            GetTaxRate(product, taxCategoryId, customer, price, out taxRate, out isTaxable);
 
             if (priceIncludesTax)
             {
                 //"price" already includes tax
-                if (!includingTax)
+                if (includingTax)
                 {
-                    //we should calculated price WITHOUT tax
-                    price = CalculatePrice(price, taxRate, false);
-                }
-                else
-                {
-                    //we should calculated price WITH tax
+                    //we should calculate price WITH tax
                     if (!isTaxable)
                     {
                         //but our request is not taxable
-                        //hence we should calculated price WITHOUT tax
+                        //hence we should calculate price WITHOUT tax
                         price = CalculatePrice(price, taxRate, false);
                     }
+                }
+                else
+                {
+                    //we should calculate price WITHOUT tax
+                    price = CalculatePrice(price, taxRate, false);
                 }
             }
             else
@@ -408,7 +425,7 @@ namespace Nop.Services.Tax
                 //"price" doesn't include tax
                 if (includingTax)
                 {
-                    //we should calculated price WITH tax
+                    //we should calculate price WITH tax
                     //do it only when price is taxable
                     if (isTaxable)
                     {

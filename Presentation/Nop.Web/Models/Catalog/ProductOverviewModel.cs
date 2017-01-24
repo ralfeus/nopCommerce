@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Nop.Core.Domain.Catalog;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Media;
 
@@ -20,6 +21,10 @@ namespace Nop.Web.Models.Catalog
         public string FullDescription { get; set; }
         public string SeName { get; set; }
 
+        public ProductType ProductType { get; set; }
+
+        public bool MarkAsNew { get; set; }
+
         //price
         public ProductPriceModel ProductPrice { get; set; }
         //picture
@@ -34,7 +39,12 @@ namespace Nop.Web.Models.Catalog
         public partial class ProductPriceModel : BaseNopModel
         {
             public string OldPrice { get; set; }
-            public string Price {get;set;}
+            public string Price { get; set; }
+            public decimal PriceValue { get; set; }
+            /// <summary>
+            /// PAngV baseprice (used in Germany)
+            /// </summary>
+            public string BasePricePAngV { get; set; }
 
             public bool DisableBuyButton { get; set; }
             public bool DisableWishlistButton { get; set; }

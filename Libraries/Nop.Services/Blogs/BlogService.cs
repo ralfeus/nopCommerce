@@ -73,6 +73,17 @@ namespace Nop.Services.Blogs
         }
 
         /// <summary>
+        /// Gets blog posts
+        /// </summary>
+        /// <param name="blogPostIds">Blog post identifiers</param>
+        /// <returns>Blog posts</returns>
+        public virtual IList<BlogPost> GetBlogPostsByIds(int[] blogPostIds)
+        {
+            var query = _blogPostRepository.Table;
+            return query.Where(p => blogPostIds.Contains(p.Id)).ToList();
+        }
+
+        /// <summary>
         /// Gets all blog posts
         /// </summary>
         /// <param name="storeId">The store identifier; pass 0 to load all records</param>
@@ -89,9 +100,9 @@ namespace Nop.Services.Blogs
         {
             var query = _blogPostRepository.Table;
             if (dateFrom.HasValue)
-                query = query.Where(b => dateFrom.Value <= b.CreatedOnUtc);
+                query = query.Where(b => dateFrom.Value <= (b.StartDateUtc ?? b.CreatedOnUtc));
             if (dateTo.HasValue)
-                query = query.Where(b => dateTo.Value >= b.CreatedOnUtc);
+                query = query.Where(b => dateTo.Value >= (b.StartDateUtc ?? b.CreatedOnUtc));
             if (languageId > 0)
                 query = query.Where(b => languageId == b.LanguageId);
             if (!showHidden)
@@ -119,7 +130,7 @@ namespace Nop.Services.Blogs
                         select bpGroup.FirstOrDefault();
             }
 
-            query = query.OrderByDescending(b => b.CreatedOnUtc);
+            query = query.OrderByDescending(b => b.StartDateUtc ?? b.CreatedOnUtc);
             
             var blogPosts = new PagedList<BlogPost>(query, pageIndex, pageSize);
             return blogPosts;
@@ -228,12 +239,12 @@ namespace Nop.Services.Blogs
         /// <returns>Comments</returns>
         public virtual IList<BlogComment> GetAllComments(int customerId)
         {
-            var query = from c in _blogCommentRepository.Table
-                        orderby c.CreatedOnUtc
-                        where (customerId == 0 || c.CustomerId == customerId)
-                        select c;
-            var content = query.ToList();
-            return content;
+            var query = _blogCommentRepository.Table;
+            if (customerId > 0)
+                query = query.Where(bc => bc.CustomerId == customerId);
+            query = query.OrderBy(bc => bc.CreatedOnUtc);
+            var comments = query.ToList();
+            return comments;
         }
 
         /// <summary>
@@ -250,6 +261,31 @@ namespace Nop.Services.Blogs
         }
 
         /// <summary>
+        /// Get blog comments by identifiers
+        /// </summary>
+        /// <param name="commentIds">Blog comment identifiers</param>
+        /// <returns>Blog comments</returns>
+        public virtual IList<BlogComment> GetBlogCommentsByIds(int[] commentIds)
+        {
+            if (commentIds == null || commentIds.Length == 0)
+                return new List<BlogComment>();
+
+            var query = from bc in _blogCommentRepository.Table
+                        where commentIds.Contains(bc.Id)
+                        select bc;
+            var comments = query.ToList();
+            //sort by passed identifiers
+            var sortedComments = new List<BlogComment>();
+            foreach (int id in commentIds)
+            {
+                var comment = comments.Find(x => x.Id == id);
+                if (comment != null)
+                    sortedComments.Add(comment);
+            }
+            return sortedComments;
+        }
+
+        /// <summary>
         /// Deletes a blog comment
         /// </summary>
         /// <param name="blogComment">Blog comment</param>
@@ -259,6 +295,18 @@ namespace Nop.Services.Blogs
                 throw new ArgumentNullException("blogComment");
 
             _blogCommentRepository.Delete(blogComment);
+        }
+
+        /// <summary>
+        /// Deletes blog comments
+        /// </summary>
+        /// <param name="blogComments">Blog comments</param>
+        public virtual void DeleteBlogComments(IList<BlogComment> blogComments)
+        {
+            if (blogComments == null)
+                throw new ArgumentNullException("blogComments");
+
+            _blogCommentRepository.Delete(blogComments);
         }
 
         #endregion

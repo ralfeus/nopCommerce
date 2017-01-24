@@ -13,14 +13,14 @@ namespace Nop.Services.Tasks
     {
         private static readonly TaskManager _taskManager = new TaskManager();
         private readonly List<TaskThread> _taskThreads = new List<TaskThread>();
-        private int _notRunTasksInterval = 60 * 30; //30 minutes
+        private const int _notRunTasksInterval = 60 * 30; //30 minutes
 
         private TaskManager()
         {
         }
         
         /// <summary>
-        /// Initializes the task manager with the property values specified in the configuration file.
+        /// Initializes the task manager
         /// </summary>
         public void Initialize()
         {
@@ -37,9 +37,9 @@ namespace Nop.Services.Tasks
             {
                 //create a thread
                 var taskThread = new TaskThread
-                                     {
-                                         Seconds = scheduleTaskGrouped.Key
-                                     };
+                {
+                    Seconds = scheduleTaskGrouped.Key
+                };
                 foreach (var scheduleTask in scheduleTaskGrouped)
                 {
                     var task = new Task(scheduleTask);
@@ -57,7 +57,7 @@ namespace Nop.Services.Tasks
                 .Where(x => !x.LastStartUtc.HasValue || x.LastStartUtc.Value.AddSeconds(x.Seconds) < DateTime.UtcNow)
                 .ToList();
             //create a thread for the tasks which weren't run for a long time
-            if (notRunTasks.Count > 0)
+            if (notRunTasks.Any())
             {
                 var taskThread = new TaskThread
                 {

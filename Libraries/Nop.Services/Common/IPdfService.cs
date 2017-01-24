@@ -16,8 +16,8 @@ namespace Nop.Services.Common
         /// </summary>
         /// <param name="order">Order</param>
         /// <param name="languageId">Language identifier; 0 to use a language used when placing an order</param>
-        /// <returns>A path of generates file</returns>
-        string PrintOrderToPdf(Order order, int languageId);
+        /// <returns>A path of generated file</returns>
+        string PrintOrderToPdf(Order order, int languageId = 0);
 
         /// <summary>
         /// Print orders to PDF

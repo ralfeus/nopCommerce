@@ -20,9 +20,11 @@ using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Seo;
 using Nop.Services.Shipping;
+using Nop.Services.Shipping.Tracking;
 using Nop.Web.Extensions;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Security;
+using Nop.Web.Models.Common;
 using Nop.Web.Models.Order;
 
 namespace Nop.Web.Controllers
@@ -49,6 +51,7 @@ namespace Nop.Web.Controllers
         private readonly IAddressAttributeFormatter _addressAttributeFormatter;
         private readonly IStoreContext _storeContext;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+        private readonly IRewardPointService _rewardPointService;
 
         private readonly OrderSettings _orderSettings;
         private readonly TaxSettings _taxSettings;
@@ -80,6 +83,7 @@ namespace Nop.Web.Controllers
             IAddressAttributeFormatter addressAttributeFormatter,
             IStoreContext storeContext,
             IOrderTotalCalculationService orderTotalCalculationService,
+            IRewardPointService rewardPointService,
             CatalogSettings catalogSettings,
             OrderSettings orderSettings,
             TaxSettings taxSettings,
@@ -106,6 +110,7 @@ namespace Nop.Web.Controllers
             this._addressAttributeFormatter = addressAttributeFormatter;
             this._storeContext = storeContext;
             this._orderTotalCalculationService = orderTotalCalculationService;
+            this._rewardPointService = rewardPointService;
 
             this._catalogSettings = catalogSettings;
             this._orderSettings = orderSettings;
@@ -194,6 +199,15 @@ namespace Nop.Web.Controllers
                         addressSettings: _addressSettings,
                         addressAttributeFormatter: _addressAttributeFormatter);
                 }
+                else
+                    if (order.PickupAddress != null)
+                        model.PickupAddress = new AddressModel
+                        {
+                            Address1 = order.PickupAddress.Address1,
+                            City = order.PickupAddress.City,
+                            CountryName = order.PickupAddress.Country != null ? order.PickupAddress.Country.Name : string.Empty,
+                            ZipPostalCode = order.PickupAddress.ZipPostalCode
+                        };
                 model.ShippingMethod = order.ShippingMethod;
    
 
@@ -301,7 +315,7 @@ namespace Nop.Web.Controllers
                 }
                 else
                 {
-                    displayTaxRates = _taxSettings.DisplayTaxRates && order.TaxRatesDictionary.Count > 0;
+                    displayTaxRates = _taxSettings.DisplayTaxRates && order.TaxRatesDictionary.Any();
                     displayTax = !displayTaxRates;
 
                     var orderTaxInCustomerCurrency = _currencyService.ConvertCurrency(order.OrderTax, order.CurrencyRate);
@@ -372,7 +386,7 @@ namespace Nop.Web.Controllers
 
             //purchased products
             model.ShowSku = _catalogSettings.ShowProductSku;
-            var orderItems = _orderService.GetAllOrderItems(order.Id, null, null, null, null, null, null);
+            var orderItems = order.OrderItems;
             foreach (var orderItem in orderItems)
             {
                 var orderItemModel = new OrderDetailsModel.OrderItemModel
@@ -447,34 +461,26 @@ namespace Nop.Web.Controllers
             if (!String.IsNullOrEmpty(shipment.TrackingNumber))
             {
                 model.TrackingNumber = shipment.TrackingNumber;
-                var srcm = _shippingService.LoadShippingRateComputationMethodBySystemName(order.ShippingRateComputationMethodSystemName);
-                if (srcm != null &&
-                    srcm.PluginDescriptor.Installed &&
-                    srcm.IsShippingRateComputationMethodActive(_shippingSettings))
+                var shipmentTracker = shipment.GetShipmentTracker(_shippingService, _shippingSettings);
+                if (shipmentTracker != null)
                 {
-                    var shipmentTracker = srcm.ShipmentTracker;
-                    if (shipmentTracker != null)
+                    model.TrackingNumberUrl = shipmentTracker.GetUrl(shipment.TrackingNumber);
+                    if (_shippingSettings.DisplayShipmentEventsToCustomers)
                     {
-                        model.TrackingNumberUrl = shipmentTracker.GetUrl(shipment.TrackingNumber);
-                        if (_shippingSettings.DisplayShipmentEventsToCustomers)
-                        {
-                            var shipmentEvents = shipmentTracker.GetShipmentEvents(shipment.TrackingNumber);
-                            if (shipmentEvents != null)
+                        var shipmentEvents = shipmentTracker.GetShipmentEvents(shipment.TrackingNumber);
+                        if (shipmentEvents != null)
+                            foreach (var shipmentEvent in shipmentEvents)
                             {
-                                foreach (var shipmentEvent in shipmentEvents)
-                                {
-                                    var shipmentStatusEventModel = new ShipmentDetailsModel.ShipmentStatusEventModel();
-                                    var shipmentEventCountry = _countryService.GetCountryByTwoLetterIsoCode(shipmentEvent.CountryCode);
-                                    shipmentStatusEventModel.Country = shipmentEventCountry != null
-                                                                           ? shipmentEventCountry.GetLocalized(x => x.Name)
-                                                                           : shipmentEvent.CountryCode;
-                                    shipmentStatusEventModel.Date = shipmentEvent.Date;
-                                    shipmentStatusEventModel.EventName = shipmentEvent.EventName;
-                                    shipmentStatusEventModel.Location = shipmentEvent.Location;
-                                    model.ShipmentStatusEvents.Add(shipmentStatusEventModel);
-                                }
+                                var shipmentStatusEventModel = new ShipmentDetailsModel.ShipmentStatusEventModel();
+                                var shipmentEventCountry = _countryService.GetCountryByTwoLetterIsoCode(shipmentEvent.CountryCode);
+                                shipmentStatusEventModel.Country = shipmentEventCountry != null
+                                                                        ? shipmentEventCountry.GetLocalized(x => x.Name)
+                                                                        : shipmentEvent.CountryCode;
+                                shipmentStatusEventModel.Date = shipmentEvent.Date;
+                                shipmentStatusEventModel.EventName = shipmentEvent.EventName;
+                                shipmentStatusEventModel.Location = shipmentEvent.Location;
+                                model.ShipmentStatusEvents.Add(shipmentStatusEventModel);
                             }
-                        }
                     }
                 }
             }
@@ -532,6 +538,7 @@ namespace Nop.Web.Controllers
 
         //My account / Orders / Cancel recurring order
         [HttpPost, ActionName("CustomerOrders")]
+        [PublicAntiForgery]
         [FormValueRequired(FormValueRequirement.StartsWith, "cancelRecurringPayment")]
         public ActionResult CancelRecurringPayment(FormCollection form)
         {
@@ -567,7 +574,7 @@ namespace Nop.Web.Controllers
 
         //My account / Reward points
         [NopHttpsRequirement(SslRequirement.Yes)]
-        public ActionResult CustomerRewardPoints()
+        public ActionResult CustomerRewardPoints(int? page)
         {
             if (!_workContext.CurrentCustomer.IsRegistered())
                 return new HttpUnauthorizedResult();
@@ -576,20 +583,32 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("CustomerInfo");
 
             var customer = _workContext.CurrentCustomer;
-
+            var pageSize = _rewardPointsSettings.PageSize;
             var model = new CustomerRewardPointsModel();
-            foreach (var rph in customer.RewardPointsHistory.OrderByDescending(rph => rph.CreatedOnUtc).ThenByDescending(rph => rph.Id))
-            {
-                model.RewardPoints.Add(new CustomerRewardPointsModel.RewardPointsHistoryModel
+            var list = _rewardPointService.GetRewardPointsHistory(customer.Id, pageIndex: --page ?? 0, pageSize: pageSize);
+
+            model.RewardPoints = list.Select(rph => 
+                new CustomerRewardPointsModel.RewardPointsHistoryModel
                 {
                     Points = rph.Points,
                     PointsBalance = rph.PointsBalance,
                     Message = rph.Message,
                     CreatedOn = _dateTimeHelper.ConvertToUserTime(rph.CreatedOnUtc, DateTimeKind.Utc)
-                });
-            }
+                }).ToList();
+
+            model.PagerModel = new PagerModel
+            {
+                PageSize = list.PageSize,
+                TotalRecords = list.TotalCount,
+                PageIndex = list.PageIndex,
+                ShowTotalSummary = true,
+                RouteActionName = "CustomerRewardPointsPaged",
+                UseRouteLinks = true,
+                RouteValues = new RewardPointsRouteValues { page = page ?? 0}
+            };
+
             //current amount/balance
-            int rewardPointsBalance = customer.GetRewardPointsBalance();
+            int rewardPointsBalance = _rewardPointService.GetRewardPointsBalance(customer.Id, _storeContext.CurrentStore.Id);
             decimal rewardPointsAmountBase = _orderTotalCalculationService.ConvertRewardPointsToAmount(rewardPointsBalance);
             decimal rewardPointsAmount = _currencyService.ConvertFromPrimaryStoreCurrency(rewardPointsAmountBase, _workContext.WorkingCurrency);
             model.RewardPointsBalance = rewardPointsBalance;
@@ -645,7 +664,7 @@ namespace Nop.Web.Controllers
                 _pdfService.PrintOrdersToPdf(stream, orders, _workContext.WorkingLanguage.Id);
                 bytes = stream.ToArray();
             }
-            return File(bytes, "application/pdf", string.Format("order_{0}.pdf", order.Id));
+            return File(bytes, MimeTypes.ApplicationPdf, string.Format("order_{0}.pdf", order.Id));
         }
 
         //My account / Order details page / re-order
@@ -661,6 +680,7 @@ namespace Nop.Web.Controllers
 
         //My account / Order details page / Complete payment
         [HttpPost, ActionName("Details")]
+        [PublicAntiForgery]
         [FormValueRequired("repost-payment")]
         public ActionResult RePostPayment(int orderId)
         {

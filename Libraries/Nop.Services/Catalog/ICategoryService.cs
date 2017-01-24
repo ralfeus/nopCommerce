@@ -19,11 +19,12 @@ namespace Nop.Services.Catalog
         /// Gets all categories
         /// </summary>
         /// <param name="categoryName">Category name</param>
+        /// <param name="storeId">Store identifier; 0 if you want to get all records</param>
         /// <param name="pageIndex">Page index</param>
         /// <param name="pageSize">Page size</param>
         /// <param name="showHidden">A value indicating whether to show hidden records</param>
         /// <returns>Categories</returns>
-        IPagedList<Category> GetAllCategories(string categoryName = "",
+        IPagedList<Category> GetAllCategories(string categoryName = "", int storeId = 0,
             int pageIndex = 0, int pageSize = int.MaxValue, bool showHidden = false);
 
         /// <summary>
@@ -31,9 +32,10 @@ namespace Nop.Services.Catalog
         /// </summary>
         /// <param name="parentCategoryId">Parent category identifier</param>
         /// <param name="showHidden">A value indicating whether to show hidden records</param>
+        /// <param name="includeAllLevels">A value indicating whether we should load all child levels</param>
         /// <returns>Categories</returns>
         IList<Category> GetAllCategoriesByParentCategoryId(int parentCategoryId,
-            bool showHidden = false);
+            bool showHidden = false, bool includeAllLevels = false);
 
         /// <summary>
         /// Gets all categories displayed on the home page
@@ -60,13 +62,7 @@ namespace Nop.Services.Catalog
         /// </summary>
         /// <param name="category">Category</param>
         void UpdateCategory(Category category);
-
-        /// <summary>
-        /// Update HasDiscountsApplied property (used for performance optimization)
-        /// </summary>
-        /// <param name="category">Category</param>
-        void UpdateHasDiscountsApplied(Category category);
-
+        
         /// <summary>
         /// Deletes a product category mapping
         /// </summary>
@@ -118,5 +114,19 @@ namespace Nop.Services.Catalog
         /// </summary>
         /// <param name="productCategory">>Product category mapping</param>
         void UpdateProductCategory(ProductCategory productCategory);
+
+        /// <summary>
+        /// Returns a list of names of not existing categories
+        /// </summary>
+        /// <param name="categoryNames">The nemes of the categories to check</param>
+        /// <returns>List of names not existing categories</returns>
+        string[] GetNotExistingCategories(string[] categoryNames);
+
+        /// <summary>
+        /// Get category IDs for products
+        /// </summary>
+        /// <param name="productIds">Products IDs</param>
+        /// <returns>Category IDs for products</returns>
+        IDictionary<int, int[]> GetProductCategoryIds(int[] productIds);
     }
 }

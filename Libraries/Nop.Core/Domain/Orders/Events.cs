@@ -5,17 +5,15 @@ namespace Nop.Core.Domain.Orders
     /// </summary>
     public class OrderPaidEvent
     {
-        private readonly Order _order;
-
         public OrderPaidEvent(Order order)
         {
-            this._order = order;
+            this.Order = order;
         }
 
-        public Order Order
-        {
-            get { return _order; }
-        }
+        /// <summary>
+        /// Order
+        /// </summary>
+        public Order Order { get; private set; }
     }
 
     /// <summary>
@@ -23,17 +21,15 @@ namespace Nop.Core.Domain.Orders
     /// </summary>
     public class OrderPlacedEvent
     {
-        private readonly Order _order;
-
         public OrderPlacedEvent(Order order)
         {
-            this._order = order;
+            this.Order = order;
         }
 
-        public Order Order
-        {
-            get { return _order; }
-        }
+        /// <summary>
+        /// Order
+        /// </summary>
+        public Order Order { get; private set; }
     }
 
     /// <summary>
@@ -41,17 +37,15 @@ namespace Nop.Core.Domain.Orders
     /// </summary>
     public class OrderCancelledEvent
     {
-        private readonly Order _order;
-
         public OrderCancelledEvent(Order order)
         {
-            this._order = order;
+            this.Order = order;
         }
 
-        public Order Order
-        {
-            get { return _order; }
-        }
+        /// <summary>
+        /// Order
+        /// </summary>
+        public Order Order { get; private set; }
     }
 
     /// <summary>
@@ -59,24 +53,21 @@ namespace Nop.Core.Domain.Orders
     /// </summary>
     public class OrderRefundedEvent
     {
-        private readonly Order _order;
-        private readonly decimal _amount;
-
         public OrderRefundedEvent(Order order, decimal amount)
         {
-            this._order = order;
-            this._amount = amount;
+            this.Order = order;
+            this.Amount = amount;
         }
 
-        public Order Order
-        {
-            get { return _order; }
-        }
+        /// <summary>
+        /// Order
+        /// </summary>
+        public Order Order { get; private set; }
 
-        public decimal Amount
-        {
-            get { return _amount; }
-        }
+        /// <summary>
+        /// Amount
+        /// </summary>
+        public decimal Amount { get; private set; }
     }
 
 }

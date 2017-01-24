@@ -11,6 +11,9 @@ namespace Nop.Admin.Models.Orders
     {
         public OrderListModel()
         {
+            OrderStatusIds = new List<int>();
+            PaymentStatusIds = new List<int>();
+            ShippingStatusIds = new List<int>();
             AvailableOrderStatuses = new List<SelectListItem>();
             AvailablePaymentStatuses = new List<SelectListItem>();
             AvailableShippingStatuses = new List<SelectListItem>();
@@ -29,16 +32,17 @@ namespace Nop.Admin.Models.Orders
         [UIHint("DateNullable")]
         public DateTime? EndDate { get; set; }
 
-        [NopResourceDisplayName("Admin.Orders.List.CustomerEmail")]
-        [AllowHtml]
-        public string CustomerEmail { get; set; }
-
         [NopResourceDisplayName("Admin.Orders.List.OrderStatus")]
-        public int OrderStatusId { get; set; }
+        [UIHint("MultiSelect")]
+        public List<int> OrderStatusIds { get; set; }
+
         [NopResourceDisplayName("Admin.Orders.List.PaymentStatus")]
-        public int PaymentStatusId { get; set; }
+        [UIHint("MultiSelect")]
+        public List<int> PaymentStatusIds { get; set; }
+
         [NopResourceDisplayName("Admin.Orders.List.ShippingStatus")]
-        public int ShippingStatusId { get; set; }
+        [UIHint("MultiSelect")]
+        public List<int> ShippingStatusIds { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.PaymentMethod")]
         public string PaymentMethodSystemName { get; set; }
@@ -55,16 +59,20 @@ namespace Nop.Admin.Models.Orders
         [NopResourceDisplayName("Admin.Orders.List.Product")]
         public int ProductId { get; set; }
 
+        [NopResourceDisplayName("Admin.Orders.List.BillingEmail")]
+        [AllowHtml]
+        public string BillingEmail { get; set; }
+
+        [NopResourceDisplayName("Admin.Orders.List.BillingLastName")]
+        [AllowHtml]
+        public string BillingLastName { get; set; }
+
         [NopResourceDisplayName("Admin.Orders.List.BillingCountry")]
         public int BillingCountryId { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.OrderNotes")]
         [AllowHtml]
         public string OrderNotes { get; set; }
-
-        [NopResourceDisplayName("Admin.Orders.List.OrderGuid")]
-        [AllowHtml]
-        public string OrderGuid { get; set; }
 
         [NopResourceDisplayName("Admin.Orders.List.GoDirectlyToNumber")]
         [AllowHtml]

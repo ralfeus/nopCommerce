@@ -1,22 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain;
-using Nop.Core.Domain.Customers;
 using Nop.Core.Infrastructure;
+using Nop.Services.Security;
 using Nop.Services.Topics;
 
 namespace Nop.Web.Framework
 {
+    /// <summary>
+    /// Store closed attribute
+    /// </summary>
     public class StoreClosedAttribute : ActionFilterAttribute
     {
+        private readonly bool _ignore;
+
+        /// <summary>
+        /// Ctor 
+        /// </summary>
+        /// <param name="ignore">Pass false in order to ignore this functionality for a certain action method</param>
+        public StoreClosedAttribute(bool ignore = false)
+        {
+            this._ignore = ignore;
+        }
+
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (filterContext == null || filterContext.HttpContext == null)
+                return;
+
+            //search the solution by "[StoreClosed(true)]" keyword 
+            //in order to find method available even when a store is closed
+            if (_ignore)
                 return;
 
             HttpRequestBase request = filterContext.HttpContext.Request;
@@ -42,27 +60,6 @@ namespace Nop.Web.Framework
             if (!storeInformationSettings.StoreClosed)
                 return;
 
-            //<controller, action>
-            var allowedPages = new List<Tuple<string, string>>();
-            //login page
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CustomerController", "Login"));
-            //logout page
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CustomerController", "Logout"));
-            //store closed page
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CommonController", "EuCookieLawAccept"));
-            //the method (AJAX) for accepting EU Cookie law
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CommonController", "StoreClosed"));
-            //the change language page (request)
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CommonController", "SetLanguage"));
-            //contact us page
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CommonController", "ContactUs"));
-            allowedPages.Add(new Tuple<string, string>("Nop.Web.Controllers.CommonController", "ContactUsSend"));
-            var isPageAllowed = allowedPages.Any(
-                x => controllerName.Equals(x.Item1, StringComparison.InvariantCultureIgnoreCase) &&
-                     actionName.Equals(x.Item2, StringComparison.InvariantCultureIgnoreCase));
-            if (isPageAllowed)
-                return;
-
             //topics accessible when a store is closed
             if (controllerName.Equals("Nop.Web.Controllers.TopicController", StringComparison.InvariantCultureIgnoreCase) &&
                 actionName.Equals("TopicDetails", StringComparison.InvariantCultureIgnoreCase))
@@ -78,11 +75,10 @@ namespace Nop.Web.Framework
                     return;
             }
 
-            //allow admin access
-            if (storeInformationSettings.StoreClosedAllowForAdmins &&
-                EngineContext.Current.Resolve<IWorkContext>().CurrentCustomer.IsAdmin())
+            //access to a closed store?
+            var permissionService = EngineContext.Current.Resolve<IPermissionService>();
+            if (permissionService.Authorize(StandardPermissionProvider.AccessClosedStore))
                 return;
-
 
             var storeClosedUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("StoreClosed");
             filterContext.Result = new RedirectResult(storeClosedUrl);

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Web.Mvc;
 using FluentValidation.Attributes;
 using Nop.Admin.Validators.Vendors;
@@ -17,8 +19,9 @@ namespace Nop.Admin.Models.Vendors
             {
                 PageSize = 5;
             }
+
             Locales = new List<VendorLocalizedModel>();
-            AssociatedCustomerEmails = new List<string>();
+            AssociatedCustomers = new List<AssociatedCustomerInfo>();
         }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.Name")]
@@ -32,6 +35,10 @@ namespace Nop.Admin.Models.Vendors
         [NopResourceDisplayName("Admin.Vendors.Fields.Description")]
         [AllowHtml]
         public string Description { get; set; }
+
+        [UIHint("Picture")]
+        [NopResourceDisplayName("Admin.Vendors.Fields.Picture")]
+        public int PictureId { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.AdminComment")]
         [AllowHtml]
@@ -72,7 +79,35 @@ namespace Nop.Admin.Models.Vendors
         public IList<VendorLocalizedModel> Locales { get; set; }
 
         [NopResourceDisplayName("Admin.Vendors.Fields.AssociatedCustomerEmails")]
-        public IList<string> AssociatedCustomerEmails { get; set; }
+        public IList<AssociatedCustomerInfo> AssociatedCustomers { get; set; }
+
+
+
+        //vendor notes
+        [NopResourceDisplayName("Admin.Vendors.VendorNotes.Fields.Note")]
+        [AllowHtml]
+        public string AddVendorNoteMessage { get; set; }
+
+
+
+
+        #region Nested classes
+
+        public class AssociatedCustomerInfo : BaseNopEntityModel
+        {
+            public string Email { get; set; }
+        }
+
+
+        public partial class VendorNote : BaseNopEntityModel
+        {
+            public int VendorId { get; set; }
+            [NopResourceDisplayName("Admin.Vendors.VendorNotes.Fields.Note")]
+            public string Note { get; set; }
+            [NopResourceDisplayName("Admin.Vendors.VendorNotes.Fields.CreatedOn")]
+            public DateTime CreatedOn { get; set; }
+        }
+        #endregion
 
     }
 

@@ -158,7 +158,7 @@ namespace Nop.Admin.Controllers
         [FormValueRequired("changepassword")]
         public ActionResult ChangePassword(EmailAccountModel model)
         {
-            if (!_permissionService.Authorize(StandardPermissionProvider.ManageCustomers))
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageEmailAccounts))
                 return AccessDeniedView();
 
             var emailAccount = _emailAccountService.GetEmailAccountById(model.Id);
@@ -184,6 +184,12 @@ namespace Nop.Admin.Controllers
             if (emailAccount == null)
                 //No email account found with the specified id
                 return RedirectToAction("List");
+
+            if (!CommonHelper.IsValidEmail(model.SendTestEmailTo))
+            {
+                ErrorNotification(_localizationService.GetResource("Admin.Common.WrongEmail"), false);
+                return View(model);
+            }
 
             try
             {

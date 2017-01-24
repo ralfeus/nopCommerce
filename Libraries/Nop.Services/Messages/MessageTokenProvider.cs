@@ -16,6 +16,7 @@ using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Shipping;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Domain.Tax;
+using Nop.Core.Domain.Vendors;
 using Nop.Core.Html;
 using Nop.Core.Infrastructure;
 using Nop.Services.Catalog;
@@ -30,7 +31,10 @@ using Nop.Services.Media;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Seo;
+using Nop.Services.Shipping;
+using Nop.Services.Shipping.Tracking;
 using Nop.Services.Stores;
+using Nop.Core.Domain;
 
 namespace Nop.Services.Messages
 {
@@ -56,8 +60,10 @@ namespace Nop.Services.Messages
         private readonly CatalogSettings _catalogSettings;
         private readonly TaxSettings _taxSettings;
         private readonly CurrencySettings _currencySettings;
+        private readonly ShippingSettings _shippingSettings;
 
         private readonly IEventPublisher _eventPublisher;
+        private readonly StoreInformationSettings _storeInformationSettings;
 
         #endregion
 
@@ -80,7 +86,9 @@ namespace Nop.Services.Messages
             CatalogSettings catalogSettings,
             TaxSettings taxSettings,
             CurrencySettings currencySettings,
-            IEventPublisher eventPublisher)
+            ShippingSettings shippingSettings,
+            IEventPublisher eventPublisher,
+            StoreInformationSettings storeInformationSettings)
         {
             this._languageService = languageService;
             this._localizationService = localizationService;
@@ -100,7 +108,9 @@ namespace Nop.Services.Messages
             this._catalogSettings = catalogSettings;
             this._taxSettings = taxSettings;
             this._currencySettings = currencySettings;
+            this._shippingSettings = shippingSettings;
             this._eventPublisher = eventPublisher;
+            this._storeInformationSettings = storeInformationSettings;
         }
 
         #endregion
@@ -116,7 +126,7 @@ namespace Nop.Services.Messages
         /// <returns>HTML table of products</returns>
         protected virtual string ProductListToHtmlTable(Order order, int languageId, int vendorId)
         {
-            var result = "";
+            string result;
 
             var language = _languageService.GetLanguageById(languageId);
 
@@ -193,7 +203,7 @@ namespace Nop.Services.Messages
                 }
                 sb.AppendLine("</td>");
 
-                string unitPriceStr = string.Empty;
+                string unitPriceStr;
                 if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
                 {
                     //including tax
@@ -210,7 +220,7 @@ namespace Nop.Services.Messages
 
                 sb.AppendLine(string.Format("<td style=\"padding: 0.6em 0.4em;text-align: center;\">{0}</td>", orderItem.Quantity));
 
-                string priceStr = string.Empty; 
+                string priceStr; 
                 if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
                 {
                     //including tax
@@ -247,7 +257,7 @@ namespace Nop.Services.Messages
                 #region Totals
 
                 //subtotal
-                string cusSubTotal = string.Empty;
+                string cusSubTotal;
                 bool displaySubTotalDiscount = false;
                 string cusSubTotalDiscount = string.Empty;
                 if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax && !_taxSettings.ForceTaxExclusionFromOrderSubtotal)
@@ -282,12 +292,12 @@ namespace Nop.Services.Messages
                 }
                 
                 //shipping, payment method fee
-                string cusShipTotal = string.Empty;
-                string cusPaymentMethodAdditionalFee = string.Empty;
+                string cusShipTotal;
+                string cusPaymentMethodAdditionalFee;
                 var taxRates = new SortedDictionary<decimal, decimal>();
                 string cusTaxTotal = string.Empty;
                 string cusDiscount = string.Empty;
-                string cusTotal = string.Empty; 
+                string cusTotal; 
                 if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
                 {
                     //including tax
@@ -338,7 +348,7 @@ namespace Nop.Services.Messages
                         foreach (var tr in order.TaxRatesDictionary)
                             taxRates.Add(tr.Key, _currencyService.ConvertCurrency(tr.Value, order.CurrencyRate));
 
-                        displayTaxRates = _taxSettings.DisplayTaxRates && taxRates.Count > 0;
+                        displayTaxRates = _taxSettings.DisplayTaxRates && taxRates.Any();
                         displayTax = !displayTaxRates;
 
                         var orderTaxInCustomerCurrency = _currencyService.ConvertCurrency(order.OrderTax, order.CurrencyRate);
@@ -443,7 +453,7 @@ namespace Nop.Services.Messages
         /// <returns>HTML table of products</returns>
         protected virtual string ProductListToHtmlTable(Shipment shipment, int languageId)
         {
-            var result = "";
+            string result;
             
             var sb = new StringBuilder();
             sb.AppendLine("<table border=\"0\" style=\"width:100%;\">");
@@ -542,6 +552,11 @@ namespace Nop.Services.Messages
             tokens.Add(new Token("Store.CompanyAddress", store.CompanyAddress));
             tokens.Add(new Token("Store.CompanyPhoneNumber", store.CompanyPhoneNumber));
             tokens.Add(new Token("Store.CompanyVat", store.CompanyVat));
+
+            tokens.Add(new Token("Facebook.URL", _storeInformationSettings.FacebookLink));
+            tokens.Add(new Token("Twitter.URL", _storeInformationSettings.TwitterLink));
+            tokens.Add(new Token("YouTube.URL", _storeInformationSettings.YoutubeLink));
+            tokens.Add(new Token("GooglePlus.URL", _storeInformationSettings.GooglePlusLink));
 
             //event notification
             _eventPublisher.EntityTokensAdded(store, tokens);
@@ -642,6 +657,16 @@ namespace Nop.Services.Messages
         {
             tokens.Add(new Token("Shipment.ShipmentNumber", shipment.Id.ToString()));
             tokens.Add(new Token("Shipment.TrackingNumber", shipment.TrackingNumber));
+            var trackingNumberUrl = "";
+            if (!String.IsNullOrEmpty(shipment.TrackingNumber))
+            {
+                //we cannot inject IShippingService into constructor because it'll cause circular references.
+                //that's why we resolve it here this way
+                var shipmentTracker = shipment.GetShipmentTracker(EngineContext.Current.Resolve<IShippingService>(), _shippingSettings);
+                if (shipmentTracker != null)
+                    trackingNumberUrl = shipmentTracker.GetUrl(shipment.TrackingNumber);
+            }
+            tokens.Add(new Token("Shipment.TrackingNumberURL", trackingNumberUrl, true));
             tokens.Add(new Token("Shipment.Product(s)", ProductListToHtmlTable(shipment, languageId), true));
             tokens.Add(new Token("Shipment.URLForCustomer", string.Format("{0}orderdetails/shipment/{1}", GetStoreUrl(shipment.Order.StoreId), shipment.Id), true));
 
@@ -652,6 +677,7 @@ namespace Nop.Services.Messages
         public virtual void AddOrderNoteTokens(IList<Token> tokens, OrderNote orderNote)
         {
             tokens.Add(new Token("Order.NewNoteText", orderNote.FormatOrderNoteText(), true));
+            tokens.Add(new Token("Order.OrderNoteAttachmentUrl", string.Format("{0}download/ordernotefile/{1}", GetStoreUrl(orderNote.Order.StoreId), orderNote.Id), true));
 
             //event notification
             _eventPublisher.EntityTokensAdded(orderNote, tokens);
@@ -667,7 +693,7 @@ namespace Nop.Services.Messages
 
         public virtual void AddReturnRequestTokens(IList<Token> tokens, ReturnRequest returnRequest, OrderItem orderItem)
         {
-            tokens.Add(new Token("ReturnRequest.ID", returnRequest.Id.ToString()));
+            tokens.Add(new Token("ReturnRequest.CustomNumber", returnRequest.CustomNumber));
             tokens.Add(new Token("ReturnRequest.OrderId", orderItem.OrderId.ToString()));
             tokens.Add(new Token("ReturnRequest.Product.Quantity", returnRequest.Quantity.ToString()));
             tokens.Add(new Token("ReturnRequest.Product.Name", orderItem.Product.Name));
@@ -722,6 +748,15 @@ namespace Nop.Services.Messages
 
             //event notification
             _eventPublisher.EntityTokensAdded(customer, tokens);
+        }
+
+        public virtual void AddVendorTokens(IList<Token> tokens, Vendor vendor)
+        {
+            tokens.Add(new Token("Vendor.Name", vendor.Name));
+            tokens.Add(new Token("Vendor.Email", vendor.Email));
+
+            //event notification
+            _eventPublisher.EntityTokensAdded(vendor, tokens);
         }
 
         public virtual void AddNewsLetterSubscriptionTokens(IList<Token> tokens, NewsLetterSubscription subscription)
@@ -866,6 +901,9 @@ namespace Nop.Services.Messages
         /// <returns>List of allowed (supported) message tokens for campaigns</returns>
         public virtual string[] GetListOfCampaignAllowedTokens()
         {
+            var additionTokens = new CampaignAdditionTokensAddedEvent();
+            _eventPublisher.Publish(additionTokens);
+
             var allowedTokens = new List<string>
             {
                 "%Store.Name%",
@@ -877,13 +915,21 @@ namespace Nop.Services.Messages
                 "%Store.CompanyVat%",
                 "%NewsLetterSubscription.Email%",
                 "%NewsLetterSubscription.ActivationUrl%",
-                "%NewsLetterSubscription.DeactivationUrl%"
+                "%NewsLetterSubscription.DeactivationUrl%",
+                "%Facebook.URL%",
+                "%Twitter.URL%",
+                "%YouTube.URL%",
+                "%GooglePlus.URL%"
             };
-            return allowedTokens.ToArray();
+            allowedTokens.AddRange(additionTokens.AdditionTokens);
+            return allowedTokens.Distinct().ToArray();
         }
 
         public virtual string[] GetListOfAllowedTokens()
         {
+            var additionTokens = new AdditionTokensAddedEvent();
+            _eventPublisher.Publish(additionTokens);
+
             var allowedTokens = new List<string>
             {
                 "%Store.Name%",
@@ -930,13 +976,15 @@ namespace Nop.Services.Messages
                 "%Order.CreatedOn%",
                 "%Order.OrderURLForCustomer%",
                 "%Order.NewNoteText%",
+                "%Order.OrderNoteAttachmentUrl%",
                 "%Order.AmountRefunded%",
                 "%RecurringPayment.ID%",
                 "%Shipment.ShipmentNumber%",
                 "%Shipment.TrackingNumber%",
+                "%Shipment.TrackingNumberURL%",
                 "%Shipment.Product(s)%",
                 "%Shipment.URLForCustomer%",
-                "%ReturnRequest.ID%",
+                "%ReturnRequest.CustomNumber%",
                 "%ReturnRequest.OrderId%",
                 "%ReturnRequest.Product.Quantity%",
                 "%ReturnRequest.Product.Name%", 
@@ -961,6 +1009,8 @@ namespace Nop.Services.Messages
                 "%Customer.VatNumberStatus%", 
                 "%Customer.PasswordRecoveryURL%", 
                 "%Customer.AccountActivationURL%", 
+                "%Vendor.Name%",
+                "%Vendor.Email%",
                 "%Wishlist.URLForCustomer%", 
                 "%NewsLetterSubscription.Email%", 
                 "%NewsLetterSubscription.ActivationUrl%",
@@ -987,10 +1037,16 @@ namespace Nop.Services.Messages
                 "%PrivateMessage.Text%",
                 "%BackInStockSubscription.ProductName%",
                 "%BackInStockSubscription.ProductUrl%",
+                "%Facebook.URL%",
+                "%Twitter.URL%",
+                "%YouTube.URL%",
+                "%GooglePlus.URL%"
             };
-            return allowedTokens.ToArray();
+            allowedTokens.AddRange(additionTokens.AdditionTokens);
+
+            return allowedTokens.Distinct().ToArray();
         }
-        
+
         #endregion
     }
 }

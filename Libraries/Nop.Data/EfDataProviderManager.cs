@@ -23,8 +23,6 @@ namespace Nop.Data
                     return new SqlServerDataProvider();
                 case "sqlce":
                     return new SqlCeDataProvider();
-                case "mysql":
-                    return new MySqlDataProvider();
                 default:
                     throw new NopException(string.Format("Not supported dataprovider name: {0}", providerName));
             }

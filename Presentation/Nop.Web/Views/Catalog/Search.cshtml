@@ -4,6 +4,8 @@
 
     //title
     Html.AddTitleParts(T("PageTitle.Search").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-search-page");
 }
 @using Nop.Web.Models.Catalog;
 <script type="text/javascript">
@@ -64,6 +66,13 @@
                                     @Html.DropDownListFor(model => model.mid, Model.AvailableManufacturers)
                                 </div>
                             }
+                            @if (Model.asv && Model.AvailableVendors.Count > 0)
+                            {
+                                <div class="inputs">
+                                    @Html.LabelFor(model => model.vid, new {}, ":")
+                                    @Html.DropDownListFor(model => model.vid, Model.AvailableVendors)
+                                </div>
+                            }
                             <div class="inputs">
                                 <label>@T("Search.PriceRange"):</label>
                                 <span class="price-range">
@@ -82,7 +91,7 @@
                     </div>
                 </div>
                 <div class="buttons">
-                    <input type="submit" class="button-1 search-button" value="@T("Search")" />
+                    <input type="submit" class="button-1 search-button" value="@T("Search.Button")" />
                 </div>
             }
         </div>

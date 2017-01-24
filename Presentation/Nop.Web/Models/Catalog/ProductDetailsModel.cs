@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Web.Mvc;
 using Nop.Core.Domain.Catalog;
+using Nop.Core.Domain.Orders;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Models.Media;
@@ -41,6 +42,8 @@ namespace Nop.Web.Models.Catalog
         public string MetaDescription { get; set; }
         public string MetaTitle { get; set; }
         public string SeName { get; set; }
+
+        public ProductType ProductType { get; set; }
 
         public bool ShowSku { get; set; }
         public string Sku { get; set; }
@@ -98,7 +101,11 @@ namespace Nop.Web.Models.Catalog
         //a list of associated products. For example, "Grouped" products could have several child "simple" products
         public IList<ProductDetailsModel> AssociatedProducts { get; set; }
 
-		#region Nested Classes
+        public bool DisplayDiscontinuedMessage { get; set; }
+
+        public string CurrentStoreName { get; set; }
+
+        #region Nested Classes
 
         public partial class ProductBreadcrumbModel : BaseNopModel
         {
@@ -122,9 +129,13 @@ namespace Nop.Web.Models.Catalog
             }
             public int ProductId { get; set; }
 
+            //qty
             [NopResourceDisplayName("Products.Qty")]
             public int EnteredQuantity { get; set; }
+            public string MinimumQuantityNotification { get; set; }
+            public List<SelectListItem> AllowedQuantities { get; set; }
 
+            //price entered by customers
             [NopResourceDisplayName("Products.EnterProductPrice")]
             public bool CustomerEntersPrice { get; set; }
             [NopResourceDisplayName("Products.EnterProductPrice")]
@@ -133,7 +144,6 @@ namespace Nop.Web.Models.Catalog
 
             public bool DisableBuyButton { get; set; }
             public bool DisableWishlistButton { get; set; }
-            public List<SelectListItem> AllowedQuantities { get; set; }
 
             //rental
             public bool IsRental { get; set; }
@@ -142,8 +152,9 @@ namespace Nop.Web.Models.Catalog
             public bool AvailableForPreOrder { get; set; }
             public DateTime? PreOrderAvailabilityStartDateTimeUtc { get; set; }
 
-            //updating existing shopping cart item?
+            //updating existing shopping cart or wishlist item?
             public int UpdatedShoppingCartItemId { get; set; }
+            public ShoppingCartType? UpdateShoppingCartItemType { get; set; }
         }
 
         public partial class ProductPriceModel : BaseNopModel
@@ -157,9 +168,7 @@ namespace Nop.Web.Models.Catalog
 
             public string Price { get; set; }
             public string PriceWithDiscount { get; set; }
-
             public decimal PriceValue { get; set; }
-            public decimal PriceWithDiscountValue { get; set; }
 
             public bool CustomerEntersPrice { get; set; }
 
@@ -251,6 +260,11 @@ namespace Nop.Web.Models.Catalog
             public int? SelectedYear { get; set; }
 
             /// <summary>
+            /// A value indicating whether this attribute depends on some other attribute
+            /// </summary>
+            public bool HasCondition { get; set; }
+
+            /// <summary>
             /// Allowed file extensions for customer uploaded files
             /// </summary>
             public IList<string> AllowedFileExtensions { get; set; }
@@ -265,12 +279,15 @@ namespace Nop.Web.Models.Catalog
         {
             public ProductAttributeValueModel()
             {
-                PictureModel = new PictureModel();
+                ImageSquaresPictureModel = new PictureModel();
             }
 
             public string Name { get; set; }
 
             public string ColorSquaresRgb { get; set; }
+
+            //picture model is used with "image square" attribute type
+            public PictureModel ImageSquaresPictureModel { get; set; }
 
             public string PriceAdjustment { get; set; }
 
@@ -278,8 +295,8 @@ namespace Nop.Web.Models.Catalog
 
             public bool IsPreSelected { get; set; }
 
-            //picture model is used when we want to override a default product picture when some attribute is selected
-            public PictureModel PictureModel { get; set; }
+            //product picture ID (associated to this value)
+            public int PictureId { get; set; }
         }
 
 		#endregion

@@ -33,8 +33,10 @@ namespace Nop.Services.Topics
         /// Gets all topics
         /// </summary>
         /// <param name="storeId">Store identifier; pass 0 to load all records</param>
+        /// <param name="ignorAcl">A value indicating whether to ignore ACL rules</param>
+        /// <param name="showHidden">A value indicating whether to show hidden topics</param>
         /// <returns>Topics</returns>
-        IList<Topic> GetAllTopics(int storeId);
+        IList<Topic> GetAllTopics(int storeId, bool ignorAcl = false, bool showHidden = false);
 
         /// <summary>
         /// Inserts a topic

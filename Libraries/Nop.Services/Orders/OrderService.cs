@@ -6,8 +6,6 @@ using Nop.Core.Data;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Orders;
-using Nop.Core.Domain.Payments;
-using Nop.Core.Domain.Shipping;
 using Nop.Services.Events;
 
 namespace Nop.Services.Orders
@@ -25,7 +23,6 @@ namespace Nop.Services.Orders
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<RecurringPayment> _recurringPaymentRepository;
         private readonly IRepository<Customer> _customerRepository;
-        private readonly IRepository<ReturnRequest> _returnRequestRepository;
         private readonly IEventPublisher _eventPublisher;
 
         #endregion
@@ -41,7 +38,6 @@ namespace Nop.Services.Orders
         /// <param name="productRepository">Product repository</param>
         /// <param name="recurringPaymentRepository">Recurring payment repository</param>
         /// <param name="customerRepository">Customer repository</param>
-        /// <param name="returnRequestRepository">Return request repository</param>
         /// <param name="eventPublisher">Event published</param>
         public OrderService(IRepository<Order> orderRepository,
             IRepository<OrderItem> orderItemRepository,
@@ -49,7 +45,6 @@ namespace Nop.Services.Orders
             IRepository<Product> productRepository,
             IRepository<RecurringPayment> recurringPaymentRepository,
             IRepository<Customer> customerRepository, 
-            IRepository<ReturnRequest> returnRequestRepository,
             IEventPublisher eventPublisher)
         {
             this._orderRepository = orderRepository;
@@ -58,7 +53,6 @@ namespace Nop.Services.Orders
             this._productRepository = productRepository;
             this._recurringPaymentRepository = recurringPaymentRepository;
             this._customerRepository = customerRepository;
-            this._returnRequestRepository = returnRequestRepository;
             this._eventPublisher = eventPublisher;
         }
 
@@ -149,12 +143,12 @@ namespace Nop.Services.Orders
         /// <param name="paymentMethodSystemName">Payment method system name; null to load all records</param>
         /// <param name="createdFromUtc">Created date from (UTC); null to load all records</param>
         /// <param name="createdToUtc">Created date to (UTC); null to load all records</param>
-        /// <param name="os">Order status; null to load all orders</param>
-        /// <param name="ps">Order payment status; null to load all orders</param>
-        /// <param name="ss">Order shipment status; null to load all orders</param>
+        /// <param name="osIds">Order status identifiers; null to load all orders</param>
+        /// <param name="psIds">Payment status identifiers; null to load all orders</param>
+        /// <param name="ssIds">Shipping status identifiers; null to load all orders</param>
         /// <param name="billingEmail">Billing email. Leave empty to load all records.</param>
+        /// <param name="billingLastName">Billing last name. Leave empty to load all records.</param>
         /// <param name="orderNotes">Search in order notes. Leave empty to load all records.</param>
-        /// <param name="orderGuid">Search by order GUID (Global unique identifier) or part of GUID. Leave empty to load all orders.</param>
         /// <param name="pageIndex">Page index</param>
         /// <param name="pageSize">Page size</param>
         /// <returns>Orders</returns>
@@ -163,22 +157,10 @@ namespace Nop.Services.Orders
             int productId = 0, int affiliateId = 0, int warehouseId = 0,
             int billingCountryId = 0, string paymentMethodSystemName = null,
             DateTime? createdFromUtc = null, DateTime? createdToUtc = null,
-            OrderStatus? os = null, PaymentStatus? ps = null, ShippingStatus? ss = null,
-            string billingEmail = null, string orderNotes = null, string orderGuid = null,
-            int pageIndex = 0, int pageSize = int.MaxValue)
+            List<int> osIds = null, List<int> psIds = null, List<int> ssIds = null,
+            string billingEmail = null, string billingLastName = "",
+            string orderNotes = null, int pageIndex = 0, int pageSize = int.MaxValue)
         {
-            int? orderStatusId = null;
-            if (os.HasValue)
-                orderStatusId = (int)os.Value;
-
-            int? paymentStatusId = null;
-            if (ps.HasValue)
-                paymentStatusId = (int)ps.Value;
-
-            int? shippingStatusId = null;
-            if (ss.HasValue)
-                shippingStatusId = (int)ss.Value;
-
             var query = _orderRepository.Table;
             if (storeId > 0)
                 query = query.Where(o => o.StoreId == storeId);
@@ -225,29 +207,21 @@ namespace Nop.Services.Orders
                 query = query.Where(o => createdFromUtc.Value <= o.CreatedOnUtc);
             if (createdToUtc.HasValue)
                 query = query.Where(o => createdToUtc.Value >= o.CreatedOnUtc);
-            if (orderStatusId.HasValue)
-                query = query.Where(o => orderStatusId.Value == o.OrderStatusId);
-            if (paymentStatusId.HasValue)
-                query = query.Where(o => paymentStatusId.Value == o.PaymentStatusId);
-            if (shippingStatusId.HasValue)
-                query = query.Where(o => shippingStatusId.Value == o.ShippingStatusId);
+            if (osIds != null && osIds.Any())
+                query = query.Where(o => osIds.Contains(o.OrderStatusId));
+            if (psIds != null && psIds.Any())
+                query = query.Where(o => psIds.Contains(o.PaymentStatusId));
+            if (ssIds != null && ssIds.Any())
+                query = query.Where(o => ssIds.Contains(o.ShippingStatusId));
             if (!String.IsNullOrEmpty(billingEmail))
                 query = query.Where(o => o.BillingAddress != null && !String.IsNullOrEmpty(o.BillingAddress.Email) && o.BillingAddress.Email.Contains(billingEmail));
+            if (!String.IsNullOrEmpty(billingLastName))
+                query = query.Where(o => o.BillingAddress != null && !String.IsNullOrEmpty(o.BillingAddress.LastName) && o.BillingAddress.LastName.Contains(billingLastName));
             if (!String.IsNullOrEmpty(orderNotes))
                 query = query.Where(o => o.OrderNotes.Any(on => on.Note.Contains(orderNotes)));
             query = query.Where(o => !o.Deleted);
             query = query.OrderByDescending(o => o.CreatedOnUtc);
 
-            
-           
-            if (!String.IsNullOrEmpty(orderGuid))
-            {
-                //filter by GUID. Filter in BLL because EF doesn't support casting of GUID to string
-                var orders = query.ToList();
-                orders = orders.FindAll(o => o.OrderGuid.ToString().ToLowerInvariant().Contains(orderGuid.ToLowerInvariant()));
-                return new PagedList<Order>(orders, pageIndex, pageSize);
-            }
-            
             //database layer paging
             return new PagedList<Order>(query, pageIndex, pageSize);
         }
@@ -338,46 +312,20 @@ namespace Nop.Services.Orders
         }
         
         /// <summary>
-        /// Gets all order items
+        /// Gets all downloadable order items
         /// </summary>
-        /// <param name="orderId">Order identifier; null to load all records</param>
         /// <param name="customerId">Customer identifier; null to load all records</param>
-        /// <param name="createdFromUtc">Order created date from (UTC); null to load all records</param>
-        /// <param name="createdToUtc">Order created date to (UTC); null to load all records</param>
-        /// <param name="os">Order status; null to load all records</param>
-        /// <param name="ps">Order payment status; null to load all records</param>
-        /// <param name="ss">Order shipment status; null to load all records</param>
-        /// <param name="loadDownloableProductsOnly">Value indicating whether to load downloadable products only</param>
-        /// <returns>Orders</returns>
-        public virtual IList<OrderItem> GetAllOrderItems(int? orderId,
-            int? customerId, DateTime? createdFromUtc, DateTime? createdToUtc, 
-            OrderStatus? os, PaymentStatus? ps, ShippingStatus? ss,
-            bool loadDownloableProductsOnly)
+        /// <returns>Order items</returns>
+        public virtual IList<OrderItem> GetDownloadableOrderItems(int customerId)
         {
-            int? orderStatusId = null;
-            if (os.HasValue)
-                orderStatusId = (int)os.Value;
-
-            int? paymentStatusId = null;
-            if (ps.HasValue)
-                paymentStatusId = (int)ps.Value;
-
-            int? shippingStatusId = null;
-            if (ss.HasValue)
-                shippingStatusId = (int)ss.Value;
-
+            if (customerId == 0)
+                throw new ArgumentOutOfRangeException("customerId");
 
             var query = from orderItem in _orderItemRepository.Table
                         join o in _orderRepository.Table on orderItem.OrderId equals o.Id
                         join p in _productRepository.Table on orderItem.ProductId equals p.Id
-                        where (!orderId.HasValue || orderId.Value == 0 || orderId == o.Id) &&
-                        (!customerId.HasValue || customerId.Value == 0 || customerId == o.CustomerId) &&
-                        (!createdFromUtc.HasValue || createdFromUtc.Value <= o.CreatedOnUtc) &&
-                        (!createdToUtc.HasValue || createdToUtc.Value >= o.CreatedOnUtc) &&
-                        (!orderStatusId.HasValue || orderStatusId == o.OrderStatusId) &&
-                        (!paymentStatusId.HasValue || paymentStatusId.Value == o.PaymentStatusId) &&
-                        (!shippingStatusId.HasValue || shippingStatusId.Value == o.ShippingStatusId) &&
-                        (!loadDownloableProductsOnly || p.IsDownload) &&
+                        where customerId == o.CustomerId &&
+                        p.IsDownload &&
                         !o.Deleted
                         orderby o.CreatedOnUtc descending, orderItem.Id
                         select orderItem;
@@ -536,71 +484,6 @@ namespace Nop.Services.Orders
 
         #endregion
 
-        #region Return requests
-
-        /// <summary>
-        /// Deletes a return request
-        /// </summary>
-        /// <param name="returnRequest">Return request</param>
-        public virtual void DeleteReturnRequest(ReturnRequest returnRequest)
-        {
-            if (returnRequest == null)
-                throw new ArgumentNullException("returnRequest");
-
-            _returnRequestRepository.Delete(returnRequest);
-
-            //event notification
-            _eventPublisher.EntityDeleted(returnRequest);
-        }
-
-        /// <summary>
-        /// Gets a return request
-        /// </summary>
-        /// <param name="returnRequestId">Return request identifier</param>
-        /// <returns>Return request</returns>
-        public virtual ReturnRequest GetReturnRequestById(int returnRequestId)
-        {
-            if (returnRequestId == 0)
-                return null;
-
-            return _returnRequestRepository.GetById(returnRequestId);
-        }
-
-        /// <summary>
-        /// Search return requests
-        /// </summary>
-        /// <param name="storeId">Store identifier; 0 to load all entries</param>
-        /// <param name="customerId">Customer identifier; null to load all entries</param>
-        /// <param name="orderItemId">Order item identifier; 0 to load all entries</param>
-        /// <param name="rs">Return request status; null to load all entries</param>
-        /// <param name="pageIndex">Page index</param>
-        /// <param name="pageSize">Page size</param>
-        /// <returns>Return requests</returns>
-        public virtual IPagedList<ReturnRequest> SearchReturnRequests(int storeId = 0, int customerId = 0,
-            int orderItemId = 0, ReturnRequestStatus? rs = null,
-            int pageIndex = 0, int pageSize = int.MaxValue)
-        {
-            var query = _returnRequestRepository.Table;
-            if (storeId > 0)
-                query = query.Where(rr => storeId == rr.StoreId);
-            if (customerId > 0)
-                query = query.Where(rr => customerId == rr.CustomerId);
-            if (rs.HasValue)
-            {
-                var returnStatusId = (int)rs.Value;
-                query = query.Where(rr => rr.ReturnRequestStatusId == returnStatusId);
-            }
-            if (orderItemId > 0)
-                query = query.Where(rr => rr.OrderItemId == orderItemId);
-
-            query = query.OrderByDescending(rr => rr.CreatedOnUtc).ThenByDescending(rr=>rr.Id);
-
-            var returnRequests = new PagedList<ReturnRequest>(query, pageIndex, pageSize);
-            return returnRequests;
-        }
-
-        #endregion
-        
         #endregion
     }
 }

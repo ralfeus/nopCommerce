@@ -4,24 +4,31 @@ using System.Globalization;
 using System.Linq;
 using System.Web.Mvc;
 using Nop.Core;
+using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
 using Nop.Services.Catalog;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Mvc;
 using Nop.Web.Framework.UI.Paging;
+using Nop.Web.Infrastructure.Cache;
 
 namespace Nop.Web.Models.Catalog
 {
+    /// <summary>
+    /// Filtering and paging model for catalog
+    /// </summary>
     public partial class CatalogPagingFilteringModel : BasePageableModel
     {
-        #region Constructors
+        #region Ctor
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public CatalogPagingFilteringModel()
         {
             this.AvailableSortOptions = new List<SelectListItem>();
             this.AvailableViewModes = new List<SelectListItem>();
             this.PageSizeOptions = new List<SelectListItem>();
-
             this.PriceRangeFilter = new PriceRangeFilterModel();
             this.SpecificationFilter = new SpecificationFilterModel();
         }
@@ -34,36 +41,55 @@ namespace Nop.Web.Models.Catalog
         /// Price range filter model
         /// </summary>
         public PriceRangeFilterModel PriceRangeFilter { get; set; }
-
         /// <summary>
         /// Specification filter model
         /// </summary>
         public SpecificationFilterModel SpecificationFilter { get; set; }
 
+        /// <summary>
+        /// A value indicating whether product sorting is allowed
+        /// </summary>
         public bool AllowProductSorting { get; set; }
+        /// <summary>
+        /// Available sort options
+        /// </summary>
         public IList<SelectListItem> AvailableSortOptions { get; set; }
 
+        /// <summary>
+        /// A value indicating whether customers are allowed to change view mode
+        /// </summary>
         public bool AllowProductViewModeChanging { get; set; }
+        /// <summary>
+        /// Available view mode options
+        /// </summary>
         public IList<SelectListItem> AvailableViewModes { get; set; }
 
+        /// <summary>
+        /// A value indicating whether customers are allowed to select page size
+        /// </summary>
         public bool AllowCustomersToSelectPageSize { get; set; }
+        /// <summary>
+        /// Available page size options
+        /// </summary>
         public IList<SelectListItem> PageSizeOptions { get; set; }
 
         /// <summary>
         /// Order by
         /// </summary>
-        public int OrderBy { get; set; }
+        public int? OrderBy { get; set; }
 
         /// <summary>
         /// Product sorting
         /// </summary>
         public string ViewMode { get; set; }
         
-
         #endregion
 
         #region Nested classes
 
+        /// <summary>
+        /// Price range filter model
+        /// </summary>
         public partial class PriceRangeFilterModel : BaseNopModel
         {
             #region Const
@@ -74,6 +100,9 @@ namespace Nop.Web.Models.Catalog
 
             #region Ctor
 
+            /// <summary>
+            /// Constuctor
+            /// </summary>
             public PriceRangeFilterModel()
             {
                 this.Items = new List<PriceRangeFilterItem>();
@@ -86,6 +115,8 @@ namespace Nop.Web.Models.Catalog
             /// <summary>
             /// Gets parsed price ranges
             /// </summary>
+            /// <param name="priceRangesStr">Price ranges in string format</param>
+            /// <returns>Price ranges</returns>
             protected virtual IList<PriceRange> GetPriceRangeList(string priceRangesStr)
             {
                 var priceRanges = new List<PriceRange>();
@@ -109,16 +140,19 @@ namespace Nop.Web.Models.Catalog
                 return priceRanges;
             }
 
+            /// <summary>
+            /// Exclude query string parameters
+            /// </summary>
+            /// <param name="url">URL</param>
+            /// <param name="webHelper">Web helper</param>
+            /// <returns>New URL</returns>
             protected virtual string ExcludeQueryStringParams(string url, IWebHelper webHelper)
             {
-                var excludedQueryStringParams = "pagenumber"; //remove page filtering
-                if (!String.IsNullOrEmpty(excludedQueryStringParams))
-                {
-                    string[] excludedQueryStringParamsSplitted = excludedQueryStringParams.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (string exclude in excludedQueryStringParamsSplitted)
-                        url = webHelper.RemoveQueryString(url, exclude);
-                }
-
+                //comma separated list of parameters to exclude
+                const string excludedQueryStringParams = "pagenumber";
+                var excludedQueryStringParamsSplitted = excludedQueryStringParams.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string exclude in excludedQueryStringParamsSplitted)
+                    url = webHelper.RemoveQueryString(url, exclude);
                 return url;
             }
 
@@ -126,6 +160,12 @@ namespace Nop.Web.Models.Catalog
 
             #region Methods
 
+            /// <summary>
+            /// Get selected price range
+            /// </summary>
+            /// <param name="webHelper">Web helper</param>
+            /// <param name="priceRangesStr">Price ranges in string format</param>
+            /// <returns>Price ranges</returns>
             public virtual PriceRange GetSelectedPriceRange(IWebHelper webHelper, string priceRangesStr)
             {
                 var range = webHelper.QueryString<string>(QUERYSTRINGPARAM);
@@ -151,10 +191,16 @@ namespace Nop.Web.Models.Catalog
                 return null;
             }
 
+            /// <summary>
+            /// Load price range filters
+            /// </summary>
+            /// <param name="priceRangeStr">Price range in string format</param>
+            /// <param name="webHelper">Web helper</param>
+            /// <param name="priceFormatter">Price formatter</param>
             public virtual void LoadPriceRangeFilters(string priceRangeStr, IWebHelper webHelper, IPriceFormatter priceFormatter)
             {
                 var priceRangeList = GetPriceRangeList(priceRangeStr);
-                if (priceRangeList.Count > 0)
+                if (priceRangeList.Any())
                 {
                     this.Enabled = true;
 
@@ -207,21 +253,49 @@ namespace Nop.Web.Models.Catalog
             #endregion
 
             #region Properties
+
+            /// <summary>
+            /// Gets or sets a value indicating whether filtering is enabled
+            /// </summary>
             public bool Enabled { get; set; }
+            /// <summary>
+            /// Filter items
+            /// </summary>
             public IList<PriceRangeFilterItem> Items { get; set; }
+            /// <summary>
+            /// URL of "remove filters" button
+            /// </summary>
             public string RemoveFilterUrl { get; set; }
 
             #endregion
         }
 
+        /// <summary>
+        /// Price range filter item
+        /// </summary>
         public partial class PriceRangeFilterItem : BaseNopModel
         {
+            /// <summary>
+            /// From
+            /// </summary>
             public string From { get; set; }
+            /// <summary>
+            /// To
+            /// </summary>
             public string To { get; set; }
+            /// <summary>
+            /// Filter URL
+            /// </summary>
             public string FilterUrl { get; set; }
+            /// <summary>
+            /// Is selected?
+            /// </summary>
             public bool Selected { get; set; }
         }
 
+        /// <summary>
+        /// Specification filter model
+        /// </summary>
         public partial class SpecificationFilterModel : BaseNopModel
         {
             #region Const
@@ -232,6 +306,9 @@ namespace Nop.Web.Models.Catalog
 
             #region Ctor
 
+            /// <summary>
+            /// Ctor
+            /// </summary>
             public SpecificationFilterModel()
             {
                 this.AlreadyFilteredItems = new List<SpecificationFilterItem>();
@@ -242,21 +319,27 @@ namespace Nop.Web.Models.Catalog
 
             #region Utilities
 
+            /// <summary>
+            /// Exclude query string parameters
+            /// </summary>
+            /// <param name="url">URL</param>
+            /// <param name="webHelper">Web helper</param>
+            /// <returns>New URL</returns>
             protected virtual string ExcludeQueryStringParams(string url, IWebHelper webHelper)
             {
-                var excludedQueryStringParams = "pagenumber"; //remove page filtering
-                if (!String.IsNullOrEmpty(excludedQueryStringParams))
-                {
-                    string[] excludedQueryStringParamsSplitted = excludedQueryStringParams.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (string exclude in excludedQueryStringParamsSplitted)
-                    {
-                        url = webHelper.RemoveQueryString(url, exclude);
-                    }
-                }
-
+                //comma separated list of parameters to exclude
+                const string excludedQueryStringParams = "pagenumber";
+                var excludedQueryStringParamsSplitted = excludedQueryStringParams.Split(new [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string exclude in excludedQueryStringParamsSplitted)
+                    url = webHelper.RemoveQueryString(url, exclude);
                 return url;
             }
             
+            /// <summary>
+            /// Generate URL of already filtered items
+            /// </summary>
+            /// <param name="optionIds">Option IDs</param>
+            /// <returns>URL</returns>
             protected virtual string GenerateFilteredSpecQueryParam(IList<int> optionIds)
             {
                 if (optionIds == null)
@@ -270,6 +353,11 @@ namespace Nop.Web.Models.Catalog
 
             #region Methods
 
+            /// <summary>
+            /// Get IDs of already filtered specification options
+            /// </summary>
+            /// <param name="webHelper">Web helper</param>
+            /// <returns>IDs</returns>
             public virtual List<int> GetAlreadyFilteredSpecOptionIds(IWebHelper webHelper)
             {
                 var result = new List<int>();
@@ -288,116 +376,123 @@ namespace Nop.Web.Models.Catalog
                 return result;
             }
 
+            /// <summary>
+            /// Prepare model
+            /// </summary>
+            /// <param name="alreadyFilteredSpecOptionIds">IDs of already filtered specification options</param>
+            /// <param name="filterableSpecificationAttributeOptionIds">IDs of filterable specification options</param>
+            /// <param name="specificationAttributeService"></param>
+            /// <param name="webHelper">Web helper</param>
+            /// <param name="workContext">Work context</param>
+            /// <param name="cacheManager">Cache manager</param>
             public virtual void PrepareSpecsFilters(IList<int> alreadyFilteredSpecOptionIds,
-                IList<int> filterableSpecificationAttributeOptionIds,
+                int[] filterableSpecificationAttributeOptionIds,
                 ISpecificationAttributeService specificationAttributeService, 
-                IWebHelper webHelper,
-                IWorkContext workContext)
+                IWebHelper webHelper, IWorkContext workContext, ICacheManager cacheManager)
             {
-                var allFilters = new List<SpecificationAttributeOptionFilter>();
-                var specificationAttributeOptions = specificationAttributeService
-                    .GetSpecificationAttributeOptionsByIds(filterableSpecificationAttributeOptionIds != null ?
-                    filterableSpecificationAttributeOptionIds.ToArray() : null);
-                foreach (var sao in specificationAttributeOptions)
-                {
-                    var sa = sao.SpecificationAttribute;
-                    if (sa != null)
+                Enabled = false;
+                var optionIds = filterableSpecificationAttributeOptionIds != null
+                    ? string.Join(",", filterableSpecificationAttributeOptionIds) : string.Empty;
+                var cacheKey = string.Format(ModelCacheEventConsumer.SPECS_FILTER_MODEL_KEY, optionIds, workContext.WorkingLanguage.Id);
+
+                var allOptions = specificationAttributeService.GetSpecificationAttributeOptionsByIds(filterableSpecificationAttributeOptionIds);
+                var allFilters = cacheManager.Get(cacheKey, () => allOptions.Select(sao =>
+                    new SpecificationAttributeOptionFilter
                     {
-                        allFilters.Add(new SpecificationAttributeOptionFilter
-                        {
-                            SpecificationAttributeId = sa.Id,
-                            SpecificationAttributeName = sa.GetLocalized(x => x.Name, workContext.WorkingLanguage.Id),
-                            SpecificationAttributeDisplayOrder = sa.DisplayOrder,
-                            SpecificationAttributeOptionId = sao.Id,
-                            SpecificationAttributeOptionName = sao.GetLocalized(x => x.Name, workContext.WorkingLanguage.Id),
-                            SpecificationAttributeOptionDisplayOrder = sao.DisplayOrder
-                        });
-                    }
-                }
+                        SpecificationAttributeId = sao.SpecificationAttribute.Id,
+                        SpecificationAttributeName = sao.SpecificationAttribute.GetLocalized(x => x.Name, workContext.WorkingLanguage.Id),
+                        SpecificationAttributeDisplayOrder = sao.SpecificationAttribute.DisplayOrder,
+                        SpecificationAttributeOptionId = sao.Id,
+                        SpecificationAttributeOptionName = sao.GetLocalized(x => x.Name, workContext.WorkingLanguage.Id),
+                        SpecificationAttributeOptionColorRgb = sao.ColorSquaresRgb,
+                        SpecificationAttributeOptionDisplayOrder = sao.DisplayOrder
+                    }).ToList());
+
+                if (!allFilters.Any())
+                    return;
 
                 //sort loaded options
                 allFilters = allFilters.OrderBy(saof => saof.SpecificationAttributeDisplayOrder)
                     .ThenBy(saof => saof.SpecificationAttributeName)
                     .ThenBy(saof => saof.SpecificationAttributeOptionDisplayOrder)
                     .ThenBy(saof => saof.SpecificationAttributeOptionName).ToList();
-                
-                //get already filtered specification options
-                var alreadyFilteredOptions = allFilters
-                    .Where(x => alreadyFilteredSpecOptionIds.Contains(x.SpecificationAttributeOptionId))
-                    .Select(x => x)
-                    .ToList();
-
-                //get not filtered specification options
-                var notFilteredOptions = new List<SpecificationAttributeOptionFilter>();
-                foreach (var saof in allFilters)
-                {
-                    //do not add already filtered specification options
-                    if (alreadyFilteredOptions.FirstOrDefault(x => x.SpecificationAttributeId == saof.SpecificationAttributeId) != null)
-                        continue;
-
-                    //else add it
-                    notFilteredOptions.Add(saof);
-                }
 
                 //prepare the model properties
-                if (alreadyFilteredOptions.Count > 0 || notFilteredOptions.Count > 0)
-                {
-                    this.Enabled = true;
-                    
-                    this.AlreadyFilteredItems = alreadyFilteredOptions.ToList().Select(x =>
-                    {
-                        var item = new SpecificationFilterItem();
-                        item.SpecificationAttributeName = x.SpecificationAttributeName;
-                        item.SpecificationAttributeOptionName = x.SpecificationAttributeOptionName;
+                Enabled = true;
+                var removeFilterUrl = webHelper.RemoveQueryString(webHelper.GetThisPageUrl(true), QUERYSTRINGPARAM);
+                RemoveFilterUrl = ExcludeQueryStringParams(removeFilterUrl, webHelper);
 
-                        return item;
+                //get already filtered specification options
+                var alreadyFilteredOptions = allFilters.Where(x => alreadyFilteredSpecOptionIds.Contains(x.SpecificationAttributeOptionId));
+                AlreadyFilteredItems = alreadyFilteredOptions.Select(x =>
+                    new SpecificationFilterItem
+                    {
+                        SpecificationAttributeName = x.SpecificationAttributeName,
+                        SpecificationAttributeOptionName = x.SpecificationAttributeOptionName,
+                        SpecificationAttributeOptionColorRgb = x.SpecificationAttributeOptionColorRgb
                     }).ToList();
 
-                    this.NotFilteredItems = notFilteredOptions.ToList().Select(x =>
-                    {
-                        var item = new SpecificationFilterItem();
-                        item.SpecificationAttributeName = x.SpecificationAttributeName;
-                        item.SpecificationAttributeOptionName = x.SpecificationAttributeOptionName;
-
-                        //filter URL
-                        var alreadyFilteredOptionIds = GetAlreadyFilteredSpecOptionIds(webHelper);
-                        if (!alreadyFilteredOptionIds.Contains(x.SpecificationAttributeOptionId))
-                            alreadyFilteredOptionIds.Add(x.SpecificationAttributeOptionId);
-                        string newQueryParam = GenerateFilteredSpecQueryParam(alreadyFilteredOptionIds);
-                        string filterUrl = webHelper.ModifyQueryString(webHelper.GetThisPageUrl(true), QUERYSTRINGPARAM + "=" + newQueryParam, null);
-                        filterUrl = ExcludeQueryStringParams(filterUrl, webHelper);
-                        item.FilterUrl = filterUrl;
-                        
-                        return item;
-                    }).ToList();
-
-
-                    //remove filter URL
-                    string removeFilterUrl = webHelper.RemoveQueryString(webHelper.GetThisPageUrl(true), QUERYSTRINGPARAM);
-                    removeFilterUrl = ExcludeQueryStringParams(removeFilterUrl, webHelper);
-                    this.RemoveFilterUrl = removeFilterUrl;
-                }
-                else
+                //get not filtered specification options
+                NotFilteredItems = allFilters.Except(alreadyFilteredOptions).Select(x =>
                 {
-                    this.Enabled = false;
-                }
+                    //filter URL
+                    var alreadyFiltered = alreadyFilteredSpecOptionIds.Concat(new List<int> { x.SpecificationAttributeOptionId });
+                    var queryString = string.Format("{0}={1}", QUERYSTRINGPARAM, GenerateFilteredSpecQueryParam(alreadyFiltered.ToList()));
+                    var filterUrl = webHelper.ModifyQueryString(webHelper.GetThisPageUrl(true), queryString, null);
+
+                    return new SpecificationFilterItem()
+                    {
+                        SpecificationAttributeName = x.SpecificationAttributeName,
+                        SpecificationAttributeOptionName = x.SpecificationAttributeOptionName,
+                        SpecificationAttributeOptionColorRgb = x.SpecificationAttributeOptionColorRgb,
+                        FilterUrl = ExcludeQueryStringParams(filterUrl, webHelper)
+                    };
+                }).ToList();
             }
 
             #endregion
 
             #region Properties
+            /// <summary>
+            /// Gets or sets a value indicating whether filtering is enabled
+            /// </summary>
             public bool Enabled { get; set; }
+            /// <summary>
+            /// Already filtered items
+            /// </summary>
             public IList<SpecificationFilterItem> AlreadyFilteredItems { get; set; }
+            /// <summary>
+            /// Not filtered yet items
+            /// </summary>
             public IList<SpecificationFilterItem> NotFilteredItems { get; set; }
+            /// <summary>
+            /// URL of "remove filters" button
+            /// </summary>
             public string RemoveFilterUrl { get; set; }
 
             #endregion
         }
 
+        /// <summary>
+        /// Specification filter item
+        /// </summary>
         public partial class SpecificationFilterItem : BaseNopModel
         {
+            /// <summary>
+            /// Specification attribute name
+            /// </summary>
             public string SpecificationAttributeName { get; set; }
+            /// <summary>
+            /// Specification attribute option name
+            /// </summary>
             public string SpecificationAttributeOptionName { get; set; }
+            /// <summary>
+            /// Specification attribute option color (RGB)
+            /// </summary>
+            public string SpecificationAttributeOptionColorRgb { get; set; }
+            /// <summary>
+            /// Filter URL
+            /// </summary>
             public string FilterUrl { get; set; }
         }
 

@@ -9,9 +9,25 @@ namespace Nop.Web.Framework
 {
     public class PublicStoreAllowNavigationAttribute : ActionFilterAttribute
     {
+        private readonly bool _ignore;
+
+        /// <summary>
+        /// Ctor 
+        /// </summary>
+        /// <param name="ignore">Pass false in order to ignore this functionality for a certain action method</param>
+        public PublicStoreAllowNavigationAttribute(bool ignore = false)
+        {
+            this._ignore = ignore;
+        }
+        
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (filterContext == null || filterContext.HttpContext == null)
+                return;
+
+            //search the solution by "[PublicStoreAllowNavigation(true)]" keyword 
+            //in order to find method available even when a store is closed
+            if (_ignore)
                 return;
 
             HttpRequestBase request = filterContext.HttpContext.Request;
@@ -32,37 +48,13 @@ namespace Nop.Web.Framework
 
             if (!DataSettingsHelper.DatabaseIsInstalled())
                 return;
-
+            
             var permissionService = EngineContext.Current.Resolve<IPermissionService>();
             var publicStoreAllowNavigation = permissionService.Authorize(StandardPermissionProvider.PublicStoreAllowNavigation);
             if (publicStoreAllowNavigation)
                 return;
 
-            if (//ensure it's not the Login page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("Login", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the Logout page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("Logout", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the Register page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("Register", StringComparison.InvariantCultureIgnoreCase)) &&
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("RegisterResult", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the Password recovery page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("PasswordRecovery", StringComparison.InvariantCultureIgnoreCase)) &&
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("PasswordRecoveryConfirm", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the Account activation page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("AccountActivation", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the Register page
-                !(controllerName.Equals("Nop.Web.Controllers.CustomerController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("CheckUsernameAvailability", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the GetStatesByCountryId ajax method (can be used during registration)
-                !(controllerName.Equals("Nop.Web.Controllers.CountryController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("GetStatesByCountryId", StringComparison.InvariantCultureIgnoreCase)) &&
-                //ensure it's not the method (AJAX) for accepting EU Cookie law
-                !(controllerName.Equals("Nop.Web.Controllers.CommonController", StringComparison.InvariantCultureIgnoreCase) && actionName.Equals("EuCookieLawAccept", StringComparison.InvariantCultureIgnoreCase)))
-            {
-                //var webHelper = EngineContext.Current.Resolve<IWebHelper>();
-                //var loginPageUrl = webHelper.GetStoreLocation() + "login";
-                //var loginPageUrl = new UrlHelper(filterContext.RequestContext).RouteUrl("login");
-                //filterContext.Result = new RedirectResult(loginPageUrl);
-                filterContext.Result = new HttpUnauthorizedResult();
-            }
+            filterContext.Result = new HttpUnauthorizedResult();
         }
     }
 }

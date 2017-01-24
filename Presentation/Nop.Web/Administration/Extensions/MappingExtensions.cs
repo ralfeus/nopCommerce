@@ -1,5 +1,6 @@
 ﻿using System;
-using AutoMapper;
+using System.Linq;
+using Nop.Admin.Infrastructure.Mapper;
 using Nop.Admin.Models.Blogs;
 using Nop.Admin.Models.Catalog;
 using Nop.Admin.Models.Cms;
@@ -49,6 +50,7 @@ using Nop.Services.Cms;
 using Nop.Services.Common;
 using Nop.Services.Payments;
 using Nop.Services.Shipping;
+using Nop.Services.Shipping.Pickup;
 using Nop.Services.Tax;
 
 namespace Nop.Admin.Extensions
@@ -57,12 +59,12 @@ namespace Nop.Admin.Extensions
     {
         public static TDestination MapTo<TSource, TDestination>(this TSource source)
         {
-            return Mapper.Map<TSource, TDestination>(source);
+            return AutoMapperConfiguration.Mapper.Map<TSource, TDestination>(source);
         }
 
         public static TDestination MapTo<TSource, TDestination>(this TSource source, TDestination destination)
         {
-            return Mapper.Map(source, destination);
+            return AutoMapperConfiguration.Mapper.Map(source, destination);
         }
         
         #region Category
@@ -491,6 +493,15 @@ namespace Nop.Admin.Extensions
 
         #endregion
 
+        #region Pickup point providers
+
+        public static PickupPointProviderModel ToModel(this IPickupPointProvider entity)
+        {
+            return entity.MapTo<IPickupPointProvider, PickupPointProviderModel>();
+        }
+
+        #endregion
+
         #region Shipping methods
 
         public static ShippingMethodModel ToModel(this ShippingMethod entity)
@@ -647,12 +658,13 @@ namespace Nop.Admin.Extensions
                             if (!String.IsNullOrEmpty(selectedAddressAttributes))
                             {
                                 var enteredText = addressAttributeParser.ParseValues(selectedAddressAttributes, attribute.Id);
-                                if (enteredText.Count > 0)
+                                if (enteredText.Any())
                                     attributeModel.DefaultValue = enteredText[0];
                             }
                         }
                         break;
                     case AttributeControlType.ColorSquares:
+                    case AttributeControlType.ImageSquares:
                     case AttributeControlType.Datepicker:
                     case AttributeControlType.FileUpload:
                     default:
@@ -1000,6 +1012,16 @@ namespace Nop.Admin.Extensions
         {
             return model.MapTo(destination);
         }
+
+        //product editor settings
+        public static ProductEditorSettingsModel ToModel(this ProductEditorSettings entity)
+        {
+            return entity.MapTo<ProductEditorSettings, ProductEditorSettingsModel>();
+        }
+        public static ProductEditorSettings ToEntity(this ProductEditorSettingsModel model, ProductEditorSettings destination)
+        {
+            return model.MapTo(destination);
+        }
         #endregion
 
         #region Plugins
@@ -1092,6 +1114,44 @@ namespace Nop.Admin.Extensions
         }
 
         public static TopicTemplate ToEntity(this TopicTemplateModel model, TopicTemplate destination)
+        {
+            return model.MapTo(destination);
+        }
+
+        #endregion
+
+        #region Return request reason
+
+        public static ReturnRequestReasonModel ToModel(this ReturnRequestReason entity)
+        {
+            return entity.MapTo<ReturnRequestReason, ReturnRequestReasonModel>();
+        }
+
+        public static ReturnRequestReason ToEntity(this ReturnRequestReasonModel model)
+        {
+            return model.MapTo<ReturnRequestReasonModel, ReturnRequestReason>();
+        }
+
+        public static ReturnRequestReason ToEntity(this ReturnRequestReasonModel model, ReturnRequestReason destination)
+        {
+            return model.MapTo(destination);
+        }
+
+        #endregion
+
+        #region Return request action
+
+        public static ReturnRequestActionModel ToModel(this ReturnRequestAction entity)
+        {
+            return entity.MapTo<ReturnRequestAction, ReturnRequestActionModel>();
+        }
+
+        public static ReturnRequestAction ToEntity(this ReturnRequestActionModel model)
+        {
+            return model.MapTo<ReturnRequestActionModel, ReturnRequestAction>();
+        }
+
+        public static ReturnRequestAction ToEntity(this ReturnRequestActionModel model, ReturnRequestAction destination)
         {
             return model.MapTo(destination);
         }

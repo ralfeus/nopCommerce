@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Caching;
-using System.Text.RegularExpressions;
 
 namespace Nop.Core.Caching
 {
@@ -73,17 +72,7 @@ namespace Nop.Core.Caching
         /// <param name="pattern">pattern</param>
         public virtual void RemoveByPattern(string pattern)
         {
-            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            var keysToRemove = new List<String>();
-
-            foreach (var item in Cache)
-                if (regex.IsMatch(item.Key))
-                    keysToRemove.Add(item.Key);
-
-            foreach (string key in keysToRemove)
-            {
-                Remove(key);
-            }
+            this.RemoveByPattern(pattern, Cache.Select(p => p.Key));
         }
 
         /// <summary>
@@ -93,6 +82,13 @@ namespace Nop.Core.Caching
         {
             foreach (var item in Cache)
                 Remove(item.Key);
+        }
+
+        /// <summary>
+        /// Dispose
+        /// </summary>
+        public virtual void Dispose()
+        {
         }
     }
 }

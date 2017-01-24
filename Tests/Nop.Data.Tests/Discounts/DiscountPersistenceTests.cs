@@ -25,10 +25,12 @@ namespace Nop.Data.Tests.Discounts
                                    EndDateUtc = new DateTime(2010, 01, 02),
                                    RequiresCouponCode = true,
                                    CouponCode = "SecretCode",
+                                   IsCumulative = true,
                                    DiscountLimitation = DiscountLimitationType.Unlimited,
                                    LimitationTimes = 3,
                                    MaximumDiscountedQuantity = 4,
-                               };
+                                   AppliedToSubCategories = true
+            };
 
             var fromDb = SaveAndLoadEntity(discount);
             fromDb.ShouldNotBeNull();
@@ -42,9 +44,11 @@ namespace Nop.Data.Tests.Discounts
             fromDb.EndDateUtc.ShouldEqual(new DateTime(2010, 01, 02));
             fromDb.RequiresCouponCode.ShouldEqual(true);
             fromDb.CouponCode.ShouldEqual("SecretCode");
+            fromDb.IsCumulative.ShouldEqual(true);
             fromDb.DiscountLimitation.ShouldEqual(DiscountLimitationType.Unlimited);
             fromDb.LimitationTimes.ShouldEqual(3);
             fromDb.MaximumDiscountedQuantity.ShouldEqual(4);
+            fromDb.AppliedToSubCategories.ShouldEqual(true);
         }
 
         [Test]

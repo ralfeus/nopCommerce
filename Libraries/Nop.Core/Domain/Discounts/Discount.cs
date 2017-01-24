@@ -65,6 +65,11 @@ namespace Nop.Core.Domain.Discounts
         public string CouponCode { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether discount can be used simultaneously with other discounts (with the same discount type)
+        /// </summary>
+        public bool IsCumulative { get; set; }
+
+        /// <summary>
         /// Gets or sets the discount limitation identifier
         /// </summary>
         public int DiscountLimitationId { get; set; }
@@ -73,12 +78,18 @@ namespace Nop.Core.Domain.Discounts
         /// Gets or sets the discount limitation times (used when Limitation is set to "N Times Only" or "N Times Per Customer")
         /// </summary>
         public int LimitationTimes { get; set; }
-
+        
         /// <summary>
         /// Gets or sets the maximum product quantity which could be discounted
         /// Used with "Assigned to products" or "Assigned to categories" type
         /// </summary>
         public int? MaximumDiscountedQuantity { get; set; }
+
+        /// <summary>
+        /// Gets or sets value indicating whether it should be applied to all subcategories or the selected one
+        /// Used with "Assigned to categories" type only.
+        /// </summary>
+        public bool AppliedToSubCategories { get; set; }
 
         /// <summary>
         /// Gets or sets the discount type
@@ -118,7 +129,6 @@ namespace Nop.Core.Domain.Discounts
             get { return _discountRequirements ?? (_discountRequirements = new List<DiscountRequirement>()); }
             protected set { _discountRequirements = value; }
         }
-
         /// <summary>
         /// Gets or sets the categories
         /// </summary>
@@ -127,7 +137,6 @@ namespace Nop.Core.Domain.Discounts
             get { return _appliedToCategories ?? (_appliedToCategories = new List<Category>()); }
             protected set { _appliedToCategories = value; }
         }
-
         /// <summary>
         /// Gets or sets the categories
         /// </summary>

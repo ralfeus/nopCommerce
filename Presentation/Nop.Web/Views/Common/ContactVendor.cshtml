@@ -5,6 +5,8 @@
 
     //title
     Html.AddTitleParts(T("PageTitle.ContactVendor", Model.VendorName).Text);
+    //page class
+    Html.AppendPageCssClassParts("html-contact-page");
 }
 <div class="page contact-page">
     <div class="page-title">
@@ -22,6 +24,7 @@
         {
             using (Html.BeginForm())
             {
+                @Html.AntiForgeryToken()
                 var validationSummary = Html.ValidationSummary(true);
                 if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
                 {
@@ -32,11 +35,13 @@
                         <div class="inputs">
                             @Html.LabelFor(model => model.FullName)
                             @Html.TextBoxFor(model => model.FullName, new { @class = "fullname", placeholder = T("ContactVendor.FullName.Hint") })
+                            @Html.RequiredHint()
                             @Html.ValidationMessageFor(model => model.FullName)
                         </div>
                         <div class="inputs">
                             @Html.LabelFor(model => model.Email)
                             @Html.TextBoxFor(model => model.Email, new { @class = "email", placeholder = T("ContactVendor.Email.Hint") })
+                            @Html.RequiredHint()
                             @Html.ValidationMessageFor(model => model.Email)
                         </div>
                         @if (Model.SubjectEnabled)
@@ -44,12 +49,14 @@
                             <div class="inputs">
                                 @Html.LabelFor(model => model.Subject)
                                 @Html.TextBoxFor(model => model.Subject, new {@class = "subject", placeholder = T("ContactVendor.Subject.Hint")})
+                                @Html.RequiredHint()
                                 @Html.ValidationMessageFor(model => model.Subject)
                             </div>
                         }
                         <div class="inputs">
                             @Html.LabelFor(model => model.Enquiry)
                             @Html.TextAreaFor(model => model.Enquiry, new { @class = "enquiry", placeholder = T("ContactVendor.Enquiry.Hint") })
+                            @Html.RequiredHint()
                             @Html.ValidationMessageFor(model => model.Enquiry)
                         </div>
                         @if (Model.DisplayCaptcha)

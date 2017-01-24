@@ -23,6 +23,13 @@ namespace Nop.Services.News
         NewsItem GetNewsById(int newsId);
 
         /// <summary>
+        /// Gets news
+        /// </summary>
+        /// <param name="newsIds">The news identifiers</param>
+        /// <returns>News</returns>
+        IList<NewsItem> GetNewsByIds(int[] newsIds);
+
+        /// <summary>
         /// Gets all news
         /// </summary>
         /// <param name="languageId">Language identifier; 0 if you want to get all records</param>
@@ -61,10 +68,23 @@ namespace Nop.Services.News
         NewsComment GetNewsCommentById(int newsCommentId);
 
         /// <summary>
+        /// Get news comments by identifiers
+        /// </summary>
+        /// <param name="commentIds">News comment identifiers</param>
+        /// <returns>News comments</returns>
+        IList<NewsComment> GetNewsCommentsByIds(int[] commentIds);
+
+        /// <summary>
         /// Deletes a news comment
         /// </summary>
         /// <param name="newsComment">News comment</param>
         void DeleteNewsComment(NewsComment newsComment);
+
+        /// <summary>
+        /// Deletes a news comments
+        /// </summary>
+        /// <param name="newsComments">News comments</param>
+        void DeleteNewsComments(IList<NewsComment> newsComments);
 
     }
 }

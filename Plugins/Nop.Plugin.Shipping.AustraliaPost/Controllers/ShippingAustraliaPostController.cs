@@ -26,7 +26,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
         public ActionResult Configure()
         {
             var model = new AustraliaPostShippingModel();
-            model.GatewayUrl = _australiaPostSettings.GatewayUrl;
+            model.ApiKey = _australiaPostSettings.ApiKey;
             model.AdditionalHandlingCharge = _australiaPostSettings.AdditionalHandlingCharge;
 
             return View("~/Plugins/Shipping.AustraliaPost/Views/ShippingAustraliaPost/Configure.cshtml", model);
@@ -42,7 +42,7 @@ namespace Nop.Plugin.Shipping.AustraliaPost.Controllers
             }
             
             //save settings
-            _australiaPostSettings.GatewayUrl = model.GatewayUrl;
+            _australiaPostSettings.ApiKey = model.ApiKey;
             _australiaPostSettings.AdditionalHandlingCharge = model.AdditionalHandlingCharge;
             _settingService.SaveSetting(_australiaPostSettings);
 

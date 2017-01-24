@@ -4,7 +4,9 @@ using System.Web.Mvc;
 using Nop.Admin.Extensions;
 using Nop.Admin.Models.Topics;
 using Nop.Core.Domain.Topics;
+using Nop.Services.Customers;
 using Nop.Services.Localization;
+using Nop.Services.Logging;
 using Nop.Services.Security;
 using Nop.Services.Seo;
 using Nop.Services.Stores;
@@ -27,6 +29,9 @@ namespace Nop.Admin.Controllers
         private readonly IStoreMappingService _storeMappingService;
         private readonly IUrlRecordService _urlRecordService;
         private readonly ITopicTemplateService _topicTemplateService;
+        private readonly ICustomerService _customerService;
+        private readonly ICustomerActivityService _customerActivityService;
+        private readonly IAclService _aclService;
 
         #endregion Fields
 
@@ -40,7 +45,10 @@ namespace Nop.Admin.Controllers
             IStoreService storeService,
             IStoreMappingService storeMappingService,
             IUrlRecordService urlRecordService,
-            ITopicTemplateService topicTemplateService)
+            ITopicTemplateService topicTemplateService,
+            ICustomerService customerService,
+            ICustomerActivityService customerActivityService,
+            IAclService aclService)
         {
             this._topicService = topicService;
             this._languageService = languageService;
@@ -51,6 +59,9 @@ namespace Nop.Admin.Controllers
             this._storeMappingService = storeMappingService;
             this._urlRecordService = urlRecordService;
             this._topicTemplateService = topicTemplateService;
+            this._customerService = customerService;
+            this._customerActivityService = customerActivityService;
+            this._aclService = aclService;
         }
 
         #endregion
@@ -111,32 +122,82 @@ namespace Nop.Admin.Controllers
         }
 
         [NonAction]
+        protected virtual void PrepareAclModel(TopicModel model, Topic topic, bool excludeProperties)
+        {
+            if (model == null)
+                throw new ArgumentNullException("model");
+
+            if (!excludeProperties && topic != null)
+                model.SelectedCustomerRoleIds = _aclService.GetCustomerRoleIdsWithAccess(topic).ToList();
+
+            var allRoles = _customerService.GetAllCustomerRoles(true);
+            foreach (var role in allRoles)
+            {
+                model.AvailableCustomerRoles.Add(new SelectListItem
+                {
+                    Text = role.Name,
+                    Value = role.Id.ToString(),
+                    Selected = model.SelectedCustomerRoleIds.Contains(role.Id)
+                });
+            }
+        }
+
+        [NonAction]
+        protected virtual void SaveTopicAcl(Topic topic, TopicModel model)
+        {
+            topic.SubjectToAcl = model.SelectedCustomerRoleIds.Any();
+
+            var existingAclRecords = _aclService.GetAclRecords(topic);
+            var allCustomerRoles = _customerService.GetAllCustomerRoles(true);
+            foreach (var customerRole in allCustomerRoles)
+            {
+                if (model.SelectedCustomerRoleIds.Contains(customerRole.Id))
+                {
+                    //new role
+                    if (existingAclRecords.Count(acl => acl.CustomerRoleId == customerRole.Id) == 0)
+                        _aclService.InsertAclRecord(topic, customerRole.Id);
+                }
+                else
+                {
+                    //remove role
+                    var aclRecordToDelete = existingAclRecords.FirstOrDefault(acl => acl.CustomerRoleId == customerRole.Id);
+                    if (aclRecordToDelete != null)
+                        _aclService.DeleteAclRecord(aclRecordToDelete);
+                }
+            }
+        }
+
+        [NonAction]
         protected virtual void PrepareStoresMappingModel(TopicModel model, Topic topic, bool excludeProperties)
         {
             if (model == null)
                 throw new ArgumentNullException("model");
 
-            model.AvailableStores = _storeService
-                .GetAllStores()
-                .Select(s => s.ToModel())
-                .ToList();
-            if (!excludeProperties)
+            if (!excludeProperties && topic != null)
+                model.SelectedStoreIds = _storeMappingService.GetStoresIdsWithAccess(topic).ToList();
+
+            var allStores = _storeService.GetAllStores();
+            foreach (var store in allStores)
             {
-                if (topic != null)
+                model.AvailableStores.Add(new SelectListItem
                 {
-                    model.SelectedStoreIds = _storeMappingService.GetStoresIdsWithAccess(topic);
-                }
+                    Text = store.Name,
+                    Value = store.Id.ToString(),
+                    Selected = model.SelectedStoreIds.Contains(store.Id)
+                });
             }
         }
 
         [NonAction]
         protected virtual void SaveStoreMappings(Topic topic, TopicModel model)
         {
+            topic.LimitedToStores = model.SelectedStoreIds.Any();
+
             var existingStoreMappings = _storeMappingService.GetStoreMappings(topic);
             var allStores = _storeService.GetAllStores();
             foreach (var store in allStores)
             {
-                if (model.SelectedStoreIds != null && model.SelectedStoreIds.Contains(store.Id))
+                if (model.SelectedStoreIds.Contains(store.Id))
                 {
                     //new store
                     if (existingStoreMappings.Count(sm => sm.StoreId == store.Id) == 0)
@@ -181,7 +242,7 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageTopics))
                 return AccessDeniedView();
 
-            var topicModels = _topicService.GetAllTopics(model.SearchStoreId)
+            var topicModels = _topicService.GetAllTopics(model.SearchStoreId, true, true)
                 .Select(x =>x.ToModel())
                 .ToList();
             //little hack here:
@@ -213,6 +274,8 @@ namespace Nop.Admin.Controllers
             var model = new TopicModel();
             //templates
             PrepareTemplatesModel(model);
+            //ACL
+            PrepareAclModel(model, null, false);
             //Stores
             PrepareStoresMappingModel(model, null, false);
             //locales
@@ -220,6 +283,7 @@ namespace Nop.Admin.Controllers
             
             //default values
             model.DisplayOrder = 1;
+            model.Published = true;
 
             return View(model);
         }
@@ -242,19 +306,35 @@ namespace Nop.Admin.Controllers
                 //search engine name
                 model.SeName = topic.ValidateSeName(model.SeName, topic.Title ?? topic.SystemName, true);
                 _urlRecordService.SaveSlug(topic, model.SeName, 0);
+                //ACL (customer roles)
+                SaveTopicAcl(topic, model);
                 //Stores
                 SaveStoreMappings(topic, model);
                 //locales
                 UpdateLocales(topic, model);
 
                 SuccessNotification(_localizationService.GetResource("Admin.ContentManagement.Topics.Added"));
-                return continueEditing ? RedirectToAction("Edit", new { id = topic.Id }) : RedirectToAction("List");
+
+                //activity log
+                _customerActivityService.InsertActivity("AddNewTopic", _localizationService.GetResource("ActivityLog.AddNewTopic"), topic.Title ?? topic.SystemName);
+
+                if (continueEditing)
+                {
+                    //selected tab
+                    SaveSelectedTabName();
+
+                    return RedirectToAction("Edit", new { id = topic.Id });
+                }
+                return RedirectToAction("List");
+
             }
 
             //If we got this far, something failed, redisplay form
 
             //templates
             PrepareTemplatesModel(model);
+            //ACL
+            PrepareAclModel(model, null, true);
             //Stores
             PrepareStoresMappingModel(model, null, true);
             return View(model);
@@ -274,6 +354,8 @@ namespace Nop.Admin.Controllers
             model.Url = Url.RouteUrl("Topic", new { SeName = topic.GetSeName() }, "http");
             //templates
             PrepareTemplatesModel(model);
+            //ACL
+            PrepareAclModel(model, topic, false);
             //Store
             PrepareStoresMappingModel(model, topic, false);
             //locales
@@ -313,6 +395,8 @@ namespace Nop.Admin.Controllers
                 //search engine name
                 model.SeName = topic.ValidateSeName(model.SeName, topic.Title ?? topic.SystemName, true);
                 _urlRecordService.SaveSlug(topic, model.SeName, 0);
+                //ACL (customer roles)
+                SaveTopicAcl(topic, model);
                 //Stores
                 SaveStoreMappings(topic, model);
                 //locales
@@ -320,10 +404,13 @@ namespace Nop.Admin.Controllers
                 
                 SuccessNotification(_localizationService.GetResource("Admin.ContentManagement.Topics.Updated"));
                 
+                //activity log
+                _customerActivityService.InsertActivity("EditTopic", _localizationService.GetResource("ActivityLog.EditTopic"), topic.Title ?? topic.SystemName);
+
                 if (continueEditing)
                 {
                     //selected tab
-                    SaveSelectedTabIndex();
+                    SaveSelectedTabName();
 
                     return RedirectToAction("Edit",  new {id = topic.Id});
                 }
@@ -336,6 +423,8 @@ namespace Nop.Admin.Controllers
             model.Url = Url.RouteUrl("Topic", new { SeName = topic.GetSeName() }, "http");
             //templates
             PrepareTemplatesModel(model);
+            //ACL
+            PrepareAclModel(model, topic, true);
             //Store
             PrepareStoresMappingModel(model, topic, true);
             return View(model);
@@ -355,6 +444,10 @@ namespace Nop.Admin.Controllers
             _topicService.DeleteTopic(topic);
 
             SuccessNotification(_localizationService.GetResource("Admin.ContentManagement.Topics.Deleted"));
+
+            //activity log
+            _customerActivityService.InsertActivity("DeleteTopic", _localizationService.GetResource("ActivityLog.DeleteTopic"), topic.Title ?? topic.SystemName);
+
             return RedirectToAction("List");
         }
         

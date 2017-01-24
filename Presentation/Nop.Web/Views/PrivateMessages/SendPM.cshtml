@@ -3,10 +3,15 @@
 @{    
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
 
+    //title
     Html.AddTitleParts(T("PageTitle.SendPM").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-private-messages");
+    Html.AppendPageCssClassParts("html-private-message-send-page");
 }
 @using (Html.BeginForm())
 {
+    @Html.AntiForgeryToken()
     <div class="page private-messages private-message-send-page">
         <div class="page-title">
             <h1>@T("PrivateMessages.Send.PostMessage")</h1>
@@ -31,7 +36,7 @@
                         }
                         else
                         {
-                            @Model.CustomerToName
+                            <span>@Model.CustomerToName</span>
                         }
                     </div>
                     <div class="inputs">

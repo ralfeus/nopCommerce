@@ -46,13 +46,13 @@ namespace Nop.Core.Infrastructure
         {
             var builder = new ContainerBuilder();
             var container = builder.Build();
+            this._containerManager = new ContainerManager(container);
 
             //we create new instance of ContainerBuilder
             //because Build() or Update() method can only be called once on a ContainerBuilder.
 
-
             //dependencies
-            var typeFinder = new WebAppTypeFinder(config);
+            var typeFinder = new WebAppTypeFinder();
             builder = new ContainerBuilder();
             builder.RegisterInstance(config).As<NopConfig>().SingleInstance();
             builder.RegisterInstance(this).As<IEngine>().SingleInstance();
@@ -68,12 +68,9 @@ namespace Nop.Core.Infrastructure
             //sort
             drInstances = drInstances.AsQueryable().OrderBy(t => t.Order).ToList();
             foreach (var dependencyRegistrar in drInstances)
-                dependencyRegistrar.Register(builder, typeFinder);
+                dependencyRegistrar.Register(builder, typeFinder, config);
             builder.Update(container);
 
-
-            this._containerManager = new ContainerManager(container);
-            
             //set dependency resolver
             DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
         }

@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Nop.Core.Caching
 {
@@ -7,11 +10,6 @@ namespace Nop.Core.Caching
     /// </summary>
     public static class CacheExtensions
     {
-        /// <summary>
-        /// Variable (lock) to support thread-safe
-        /// </summary>
-        private static readonly object _syncObject = new object();
-
         /// <summary>
         /// Get a cached item. If it's not in the cache yet, then load and cache it
         /// </summary>
@@ -34,20 +32,30 @@ namespace Nop.Core.Caching
         /// <param name="cacheTime">Cache time in minutes (0 - do not cache)</param>
         /// <param name="acquire">Function to load item if it's not in the cache yet</param>
         /// <returns>Cached item</returns>
-        public static T Get<T>(this ICacheManager cacheManager, string key, int cacheTime, Func<T> acquire) 
+        public static T Get<T>(this ICacheManager cacheManager, string key, int cacheTime, Func<T> acquire)
         {
-            lock (_syncObject)
+            if (cacheManager.IsSet(key))
             {
-                if (cacheManager.IsSet(key))
-                {
-                    return cacheManager.Get<T>(key);
-                }
-
-                var result = acquire();
-                if (cacheTime > 0)
-                    cacheManager.Set(key, result, cacheTime);
-                return result;
+                return cacheManager.Get<T>(key);
             }
+
+            var result = acquire();
+            if (cacheTime > 0)
+                cacheManager.Set(key, result, cacheTime);
+            return result;
+        }
+
+        /// <summary>
+        /// Removes items by pattern
+        /// </summary>
+        /// <param name="cacheManager">Cache manager</param>
+        /// <param name="pattern">Pattern</param>
+        /// <param name="keys">All keys in the cache</param>
+        public static void RemoveByPattern(this ICacheManager cacheManager, string pattern, IEnumerable<string> keys)
+        {
+            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            foreach (var key in keys.Where(p => regex.IsMatch(p.ToString())).ToList())
+                cacheManager.Remove(key);
         }
     }
 }

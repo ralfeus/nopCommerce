@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Nop.Core;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Shipping;
@@ -41,6 +42,7 @@ namespace Nop.Data.Tests.Catalog
                 Gtin = "gtin 1",
                 IsGiftCard = true,
                 GiftCardTypeId = 1,
+                OverriddenGiftCardAmount = 1,
                 IsDownload = true,
                 DownloadId = 2,
                 UnlimitedDownloads = true,
@@ -81,6 +83,7 @@ namespace Nop.Data.Tests.Catalog
                 OrderMaximumQuantity = 19,
                 AllowedQuantities = "1, 5,6,10",
                 AllowAddingOnlyExistingAttributeCombinations = true,
+                NotReturnable = true,
                 DisableBuyButton = true,
                 DisableWishlistButton = true,
                 AvailableForPreOrder = true,
@@ -100,6 +103,9 @@ namespace Nop.Data.Tests.Catalog
                 BasepriceUnitId = 4,
                 BasepriceBaseAmount = 34.1M,
                 BasepriceBaseUnitId = 5,
+                MarkAsNew = true,
+                MarkAsNewStartDateTimeUtc = new DateTime(2010, 01, 07),
+                MarkAsNewEndDateTimeUtc = new DateTime(2010, 01, 08),
                 HasTierPrices = true,
                 HasDiscountsApplied = true,
                 Weight = 26.1M,
@@ -145,6 +151,7 @@ namespace Nop.Data.Tests.Catalog
             fromDb.Gtin.ShouldEqual("gtin 1");
             fromDb.IsGiftCard.ShouldEqual(true);
             fromDb.GiftCardTypeId.ShouldEqual(1);
+            fromDb.OverriddenGiftCardAmount.ShouldEqual(1);
             fromDb.IsDownload.ShouldEqual(true);
             fromDb.DownloadId.ShouldEqual(2);
             fromDb.UnlimitedDownloads.ShouldEqual(true);
@@ -185,6 +192,7 @@ namespace Nop.Data.Tests.Catalog
             fromDb.OrderMaximumQuantity.ShouldEqual(19);
             fromDb.AllowedQuantities.ShouldEqual("1, 5,6,10");
             fromDb.AllowAddingOnlyExistingAttributeCombinations.ShouldEqual(true);
+            fromDb.NotReturnable.ShouldEqual(true);
             fromDb.DisableBuyButton.ShouldEqual(true);
             fromDb.DisableWishlistButton.ShouldEqual(true);
             fromDb.AvailableForPreOrder.ShouldEqual(true);
@@ -204,6 +212,9 @@ namespace Nop.Data.Tests.Catalog
             fromDb.BasepriceUnitId.ShouldEqual(4);
             fromDb.BasepriceBaseAmount.ShouldEqual(34.1M);
             fromDb.BasepriceBaseUnitId.ShouldEqual(5);
+            fromDb.MarkAsNew.ShouldEqual(true);
+            fromDb.MarkAsNewStartDateTimeUtc.ShouldEqual(new DateTime(2010, 01, 07));
+            fromDb.MarkAsNewEndDateTimeUtc.ShouldEqual(new DateTime(2010, 01, 08));
             fromDb.HasTierPrices.ShouldEqual(true);
             fromDb.HasDiscountsApplied.ShouldEqual(true);
             fromDb.Weight.ShouldEqual(26.1M);
@@ -339,7 +350,7 @@ namespace Nop.Data.Tests.Catalog
                         Picture = new Picture
                         {
                             PictureBinary = new byte[] { 1, 2, 3 },
-                            MimeType = "image/pjpeg",
+                            MimeType = MimeTypes.ImagePJpeg,
                             IsNew = true
                         }
                     }
@@ -353,7 +364,7 @@ namespace Nop.Data.Tests.Catalog
             fromDb.ProductPictures.First().DisplayOrder.ShouldEqual(1);
 
             fromDb.ProductPictures.First().Picture.ShouldNotBeNull();
-            fromDb.ProductPictures.First().Picture.MimeType.ShouldEqual("image/pjpeg");
+            fromDb.ProductPictures.First().Picture.MimeType.ShouldEqual(MimeTypes.ImagePJpeg);
         }
 
         [Test]

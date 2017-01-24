@@ -11,13 +11,13 @@ namespace Nop.Web.Models.Boards
 
         public int NumPosts { get; set; }
         public int Views { get; set; }
+        public int Votes { get; set; }
         public int NumReplies { get; set; }
         public ForumTopicType ForumTopicType { get; set; }
 
         public int CustomerId { get; set; }
         public bool AllowViewingProfiles { get; set; }
         public string CustomerName { get; set; }
-        public bool IsCustomerGuest { get; set; }
 
         //posts
         public int TotalPostPages { get; set; }

@@ -196,7 +196,98 @@ namespace Nop.Admin.Controllers
         }
 
         #endregion
-        
+
+        #region Pickup point providers
+
+        public ActionResult PickupPointProviders()
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
+                return AccessDeniedView();
+
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult PickupPointProviders(DataSourceRequest command)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
+                return AccessDeniedView();
+
+            var pickupPointProviderModel = new List<PickupPointProviderModel>();
+            var allProviders = _shippingService.LoadAllPickupPointProviders();
+            foreach (var provider in allProviders)
+            {
+                var model = provider.ToModel();
+                model.IsActive = provider.IsPickupPointProviderActive(_shippingSettings);
+                model.LogoUrl = provider.PluginDescriptor.GetLogoUrl(_webHelper);
+                pickupPointProviderModel.Add(model);
+            }
+
+            var gridModel = new DataSourceResult
+            {
+                Data = pickupPointProviderModel,
+                Total = pickupPointProviderModel.Count
+            };
+
+            return Json(gridModel);
+        }
+
+        [HttpPost]
+        public ActionResult PickupPointProviderUpdate([Bind(Exclude = "ConfigurationRouteValues")] PickupPointProviderModel model)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
+                return AccessDeniedView();
+
+            var pickupPointProvider = _shippingService.LoadPickupPointProviderBySystemName(model.SystemName);
+            if (pickupPointProvider.IsPickupPointProviderActive(_shippingSettings))
+            {
+                if (!model.IsActive)
+                {
+                    //mark as disabled
+                    _shippingSettings.ActivePickupPointProviderSystemNames.Remove(pickupPointProvider.PluginDescriptor.SystemName);
+                    _settingService.SaveSetting(_shippingSettings);
+                }
+            }
+            else
+            {
+                if (model.IsActive)
+                {
+                    //mark as active
+                    _shippingSettings.ActivePickupPointProviderSystemNames.Add(pickupPointProvider.PluginDescriptor.SystemName);
+                    _settingService.SaveSetting(_shippingSettings);
+                }
+            }
+            var pluginDescriptor = pickupPointProvider.PluginDescriptor;
+            pluginDescriptor.DisplayOrder = model.DisplayOrder;
+            PluginFileParser.SavePluginDescriptionFile(pluginDescriptor);
+            //reset plugin cache
+            _pluginFinder.ReloadPlugins();
+
+            return new NullJsonResult();
+        }
+
+        public ActionResult ConfigurePickupPointProvider(string systemName)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
+                return AccessDeniedView();
+
+            var pickupPointProvider = _shippingService.LoadPickupPointProviderBySystemName(systemName);
+            if (pickupPointProvider == null)
+                return RedirectToAction("PickupPointProviders");
+
+            var model = pickupPointProvider.ToModel();
+            string actionName;
+            string controllerName;
+            RouteValueDictionary routeValues;
+            pickupPointProvider.GetConfigurationRoute(out actionName, out controllerName, out routeValues);
+            model.ConfigurationActionName = actionName;
+            model.ConfigurationControllerName = controllerName;
+            model.ConfigurationRouteValues = routeValues;
+            return View(model);
+        }
+
+        #endregion
+
         #region Shipping methods
 
         public ActionResult Methods()
@@ -495,7 +586,7 @@ namespace Nop.Admin.Controllers
 
             var model = new WarehouseModel();
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString() });
             model.Address.AvailableStates.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.OtherNonUS"), Value = "0" });
             model.Address.CountryEnabled = true;
@@ -535,11 +626,11 @@ namespace Nop.Admin.Controllers
             //If we got this far, something failed, redisplay form
             //countries
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (c.Id == model.Address.CountryId) });
             //states
-            var states = model.Address.CountryId.HasValue ? _stateProvinceService.GetStateProvincesByCountryId(model.Address.CountryId.Value, true).ToList() : new List<StateProvince>();
-            if (states.Count > 0)
+            var states = model.Address.CountryId.HasValue ? _stateProvinceService.GetStateProvincesByCountryId(model.Address.CountryId.Value, showHidden: true).ToList() : new List<StateProvince>();
+            if (states.Any())
             {
                 foreach (var s in states)
                     model.Address.AvailableStates.Add(new SelectListItem { Text = s.Name, Value = s.Id.ToString(), Selected = (s.Id == model.Address.StateProvinceId) });
@@ -574,11 +665,11 @@ namespace Nop.Admin.Controllers
             }
             //countries
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (address != null && c.Id == address.CountryId) });
             //states
-            var states = address != null && address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, true).ToList() : new List<StateProvince>();
-            if (states.Count > 0)
+            var states = address != null && address.Country != null ? _stateProvinceService.GetStateProvincesByCountryId(address.Country.Id, showHidden: true).ToList() : new List<StateProvince>();
+            if (states.Any())
             {
                 foreach (var s in states)
                     model.Address.AvailableStates.Add(new SelectListItem { Text = s.Name, Value = s.Id.ToString(), Selected = (s.Id == address.StateProvinceId) });
@@ -634,11 +725,11 @@ namespace Nop.Admin.Controllers
 
             //countries
             model.Address.AvailableCountries.Add(new SelectListItem { Text = _localizationService.GetResource("Admin.Address.SelectCountry"), Value = "0" });
-            foreach (var c in _countryService.GetAllCountries(true))
+            foreach (var c in _countryService.GetAllCountries(showHidden: true))
                 model.Address.AvailableCountries.Add(new SelectListItem { Text = c.Name, Value = c.Id.ToString(), Selected = (c.Id == model.Address.CountryId) });
             //states
-            var states =  model.Address.CountryId.HasValue ? _stateProvinceService.GetStateProvincesByCountryId(model.Address.CountryId.Value, true).ToList() : new List<StateProvince>();
-            if (states.Count > 0)
+            var states = model.Address.CountryId.HasValue ? _stateProvinceService.GetStateProvincesByCountryId(model.Address.CountryId.Value, showHidden: true).ToList() : new List<StateProvince>();
+            if (states.Any())
             {
                 foreach (var s in states)
                     model.Address.AvailableStates.Add(new SelectListItem { Text = s.Name, Value = s.Id.ToString(), Selected = (s.Id == model.Address.StateProvinceId) });
@@ -677,7 +768,7 @@ namespace Nop.Admin.Controllers
 
             var model = new ShippingMethodRestrictionModel();
 
-            var countries = _countryService.GetAllCountries(true);
+            var countries = _countryService.GetAllCountries(showHidden: true);
             var shippingMethods = _shippingService.GetAllShippingMethods();
             foreach (var country in countries)
             {
@@ -713,7 +804,7 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
 
-            var countries = _countryService.GetAllCountries(true);
+            var countries = _countryService.GetAllCountries(showHidden: true);
             var shippingMethods = _shippingService.GetAllShippingMethods();
 
 

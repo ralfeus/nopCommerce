@@ -1,0 +1,9 @@
+Group: Payment methods
+FriendlyName: Deposit
+SystemName: Payments.Deposit
+Version: 0.1
+SupportedVersions: 3.80
+Author: Mykhaylo Khodorev (ralfeus@gmail.com)
+DisplayOrder: 1
+FileName: Nop.Plugin.Payments.Deposit.dll
+Description: This plugin provides deposit functionality for pre- and post-payment

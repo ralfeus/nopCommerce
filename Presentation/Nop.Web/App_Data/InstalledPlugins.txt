@@ -20,7 +20,8 @@ Shipping.ByWeight
 Shipping.UPS
 Shipping.USPS
 Mobile.SMS.Verizon
-Tax.FixedRate
-Tax.CountryStateZip
 Widgets.GoogleAnalytics
 Widgets.NivoSlider
+ima9ines.Nop
+ima9ines.Nop.NewProducts
+Payments.Deposit

@@ -10,8 +10,8 @@ namespace Nop.Web.Models.Order
         public SubmitReturnRequestModel()
         {
             Items = new List<OrderItemModel>();
-            AvailableReturnReasons = new List<SelectListItem>();
-            AvailableReturnActions= new List<SelectListItem>();
+            AvailableReturnReasons = new List<ReturnRequestReasonModel>();
+            AvailableReturnActions= new List<ReturnRequestActionModel>();
         }
 
         public int OrderId { get; set; }
@@ -20,13 +20,13 @@ namespace Nop.Web.Models.Order
         
         [AllowHtml]
         [NopResourceDisplayName("ReturnRequests.ReturnReason")]
-        public string ReturnReason { get; set; }
-        public IList<SelectListItem> AvailableReturnReasons { get; set; }
+        public int ReturnRequestReasonId { get; set; }
+        public IList<ReturnRequestReasonModel> AvailableReturnReasons { get; set; }
 
         [AllowHtml]
         [NopResourceDisplayName("ReturnRequests.ReturnAction")]
-        public string ReturnAction { get; set; }
-        public IList<SelectListItem> AvailableReturnActions { get; set; }
+        public int ReturnRequestActionId { get; set; }
+        public IList<ReturnRequestActionModel> AvailableReturnActions { get; set; }
 
         [AllowHtml]
         [NopResourceDisplayName("ReturnRequests.Comments")]
@@ -49,6 +49,15 @@ namespace Nop.Web.Models.Order
             public string UnitPrice { get; set; }
 
             public int Quantity { get; set; }
+        }
+
+        public partial class ReturnRequestReasonModel : BaseNopEntityModel
+        {
+            public string Name { get; set; }
+        }
+        public partial class ReturnRequestActionModel : BaseNopEntityModel
+        {
+            public string Name { get; set; }
         }
 
         #endregion

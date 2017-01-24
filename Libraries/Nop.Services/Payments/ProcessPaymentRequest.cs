@@ -45,7 +45,7 @@ namespace Nop.Services.Payments
         #region Payment method specific properties 
 
         /// <summary>
-        /// Gets or sets a credit card type (Visa, Master Card, etc...)
+        /// Gets or sets a credit card type (Visa, Master Card, etc...). We leave it empty if not used by a payment gateway
         /// </summary>
         public string CreditCardType { get; set; }
 
@@ -77,11 +77,6 @@ namespace Nop.Services.Payments
         #endregion
 
         #region Recurring payments
-
-        /// <summary>
-        /// Gets or sets a value idicating whether it's a recurring payment (initial payment was already processed)
-        /// </summary>
-        public bool IsRecurringPayment { get; set; }
 
         /// <summary>
         /// Gets or sets an initial (parent) order identifier if order is recurring

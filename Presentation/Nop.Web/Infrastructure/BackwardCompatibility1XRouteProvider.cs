@@ -1,7 +1,7 @@
-﻿using System;
-using System.Configuration;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 using System.Web.Routing;
+using Nop.Core.Configuration;
+using Nop.Core.Infrastructure;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Web.Infrastructure
@@ -11,10 +11,8 @@ namespace Nop.Web.Infrastructure
     {
         public void RegisterRoutes(RouteCollection routes)
         {
-            var supportPreviousNopcommerceVersions =
-                !String.IsNullOrEmpty(ConfigurationManager.AppSettings["SupportPreviousNopcommerceVersions"]) &&
-                Convert.ToBoolean(ConfigurationManager.AppSettings["SupportPreviousNopcommerceVersions"]);
-            if (!supportPreviousNopcommerceVersions)
+            var config = EngineContext.Current.Resolve<NopConfig>();
+            if (!config.SupportPreviousNopcommerceVersions)
                 return;
 
             //all old aspx URLs

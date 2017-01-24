@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web;
-using System.Web.Hosting;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 
@@ -19,6 +18,21 @@ namespace Nop.Core
         #region Fields 
 
         private readonly HttpContextBase _httpContext;
+        private readonly string[] _staticFileExtensions;
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Ctor
+        /// </summary>
+        /// <param name="httpContext">HTTP context</param>
+        public WebHelper(HttpContextBase httpContext)
+        {
+            this._httpContext = httpContext;
+            this._staticFileExtensions = new[] { ".axd", ".ashx", ".bmp", ".css", ".gif", ".htm", ".html", ".ico", ".jpeg", ".jpg", ".js", ".png", ".rar", ".zip" };
+        }
 
         #endregion
 
@@ -47,7 +61,7 @@ namespace Nop.Core
             {
                 // In medium trust, "UnloadAppDomain" is not supported. Touch web.config
                 // to force an AppDomain restart.
-                File.SetLastWriteTimeUtc(MapPath("~/web.config"), DateTime.UtcNow);
+                File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/web.config"), DateTime.UtcNow);
                 return true;
             }
             catch
@@ -68,7 +82,7 @@ namespace Nop.Core
                 //i.e "Controller does not implement IController".
                 //The issue is described here: http://www.nopcommerce.com/boards/t/10969/nop-20-plugin.aspx?p=4#51318
                 //The solution is to touch global.asax file
-                File.SetLastWriteTimeUtc(MapPath("~/global.asax"), DateTime.UtcNow);
+                File.SetLastWriteTimeUtc(CommonHelper.MapPath("~/global.asax"), DateTime.UtcNow);
                 return true;
             }
             catch
@@ -80,15 +94,6 @@ namespace Nop.Core
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="httpContext">HTTP context</param>
-        public WebHelper(HttpContextBase httpContext)
-        {
-            this._httpContext = httpContext;
-        }
 
         /// <summary>
         /// Get URL referrer
@@ -128,7 +133,7 @@ namespace Nop.Core
                     //e.g. CF-Connecting-IP, X-FORWARDED-PROTO, etc
                     forwardedHttpHeader = ConfigurationManager.AppSettings["ForwardedHTTPheader"];
                 }
-                    
+
                 //it's used for identifying the originating IP address of a client connecting to a web server
                 //through an HTTP proxy or load balancer. 
                 string xff = _httpContext.Request.Headers.AllKeys
@@ -139,7 +144,7 @@ namespace Nop.Core
                 //if you want to exclude private IP addresses, then see http://stackoverflow.com/questions/2577496/how-can-i-get-the-clients-ip-address-in-asp-net-mvc
                 if (!String.IsNullOrEmpty(xff))
                 {
-                    string lastIp = xff.Split(new [] { ',' }).FirstOrDefault();
+                    string lastIp = xff.Split(new[] { ',' }).FirstOrDefault();
                     result = lastIp;
                 }
             }
@@ -157,10 +162,10 @@ namespace Nop.Core
             {
                 int index = result.IndexOf(":", StringComparison.InvariantCultureIgnoreCase);
                 if (index > 0)
-                    result = result.Substring(0, index); 
+                    result = result.Substring(0, index);
             }
             return result;
-            
+
         }
 
         /// <summary>
@@ -213,15 +218,29 @@ namespace Nop.Core
             bool useSsl = false;
             if (IsRequestAvailable(_httpContext))
             {
-                useSsl = _httpContext.Request.IsSecureConnection;
-                //when your hosting uses a load balancer on their server then the Request.IsSecureConnection is never got set to true, use the statement below
-                //just uncomment it
-                //useSSL = _httpContext.Request.ServerVariables["HTTP_CLUSTER_HTTPS"] == "on" ? true : false;
+                //when your hosting uses a load balancer on their server then the Request.IsSecureConnection is never got set to true
+
+                //1. use HTTP_CLUSTER_HTTPS?
+                if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]) &&
+                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_CLUSTER_HTTPS"]))
+                {
+                    useSsl = ServerVariables("HTTP_CLUSTER_HTTPS") == "on";
+                }
+                //2. use HTTP_X_FORWARDED_PROTO?
+                else if (!string.IsNullOrEmpty(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]) &&
+                   Convert.ToBoolean(ConfigurationManager.AppSettings["Use_HTTP_X_FORWARDED_PROTO"]))
+                {
+                    useSsl = string.Equals(ServerVariables("HTTP_X_FORWARDED_PROTO"), "https", StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    useSsl = _httpContext.Request.IsSecureConnection;
+                }
             }
 
             return useSsl;
         }
-        
+
         /// <summary>
         /// Gets server variable by name
         /// </summary>
@@ -271,7 +290,7 @@ namespace Nop.Core
                 #region Database is installed
 
                 //let's resolve IWorkContext  here.
-                //Do not inject it via contructor because it'll cause circular references
+                //Do not inject it via constructor  because it'll cause circular references
                 var storeContext = EngineContext.Current.Resolve<IStoreContext>();
                 var currentStore = storeContext.CurrentStore;
                 if (currentStore == null)
@@ -289,19 +308,14 @@ namespace Nop.Core
 
                 if (useSsl)
                 {
-                    if (!String.IsNullOrWhiteSpace(currentStore.SecureUrl))
-                    {
+                    result = !String.IsNullOrWhiteSpace(currentStore.SecureUrl) ?
                         //Secure URL specified. 
                         //So a store owner don't want it to be detected automatically.
                         //In this case let's use the specified secure URL
-                        result = currentStore.SecureUrl;
-                    }
-                    else
-                    {
+                        currentStore.SecureUrl :
                         //Secure URL is not specified.
                         //So a store owner wants it to be detected automatically.
-                        result = result.Replace("http:/", "https:/");
-                    }
+                        result.Replace("http:/", "https:/");
                 }
                 else
                 {
@@ -332,7 +346,7 @@ namespace Nop.Core
                 result += "/";
             return result.ToLowerInvariant();
         }
-        
+
         /// <summary>
         /// Gets store location
         /// </summary>
@@ -362,7 +376,7 @@ namespace Nop.Core
 
             return result.ToLowerInvariant();
         }
-        
+
         /// <summary>
         /// Returns true if the requested resource is one of the typical resources that needn't be processed by the cms engine.
         /// </summary>
@@ -389,45 +403,7 @@ namespace Nop.Core
 
             if (extension == null) return false;
 
-            switch (extension.ToLower())
-            {
-                case ".axd":
-                case ".ashx":
-                case ".bmp":
-                case ".css":
-                case ".gif":
-                case ".htm":
-                case ".html":
-                case ".ico":
-                case ".jpeg":
-                case ".jpg":
-                case ".js":
-                case ".png":
-                case ".rar":
-                case ".zip":
-                    return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Maps a virtual path to a physical disk path.
-        /// </summary>
-        /// <param name="path">The path to map. E.g. "~/bin"</param>
-        /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
-        public virtual string MapPath(string path)
-        {
-            if (HostingEnvironment.IsHosted)
-            {
-                //hosted
-                return HostingEnvironment.MapPath(path);
-            }
-
-            //not hosted. For example, run in unit tests
-            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
-            return Path.Combine(baseDirectory, path);
+            return _staticFileExtensions.Contains(extension);
         }
 
         /// <summary>
@@ -469,11 +445,11 @@ namespace Nop.Core
                 if (!string.IsNullOrEmpty(str))
                 {
                     var dictionary = new Dictionary<string, string>();
-                    foreach (string str3 in str.Split(new [] { '&' }))
+                    foreach (string str3 in str.Split(new[] { '&' }))
                     {
                         if (!string.IsNullOrEmpty(str3))
                         {
-                            string[] strArray = str3.Split(new [] { '=' });
+                            string[] strArray = str3.Split(new[] { '=' });
                             if (strArray.Length == 2)
                             {
                                 if (!dictionary.ContainsKey(strArray[0]))
@@ -492,11 +468,11 @@ namespace Nop.Core
                             }
                         }
                     }
-                    foreach (string str4 in queryStringModification.Split(new [] { '&' }))
+                    foreach (string str4 in queryStringModification.Split(new[] { '&' }))
                     {
                         if (!string.IsNullOrEmpty(str4))
                         {
-                            string[] strArray2 = str4.Split(new [] { '=' });
+                            string[] strArray2 = str4.Split(new[] { '=' });
                             if (strArray2.Length == 2)
                             {
                                 dictionary[strArray2[0]] = strArray2[1];
@@ -563,11 +539,11 @@ namespace Nop.Core
                 if (!string.IsNullOrEmpty(str))
                 {
                     var dictionary = new Dictionary<string, string>();
-                    foreach (string str3 in str.Split(new [] { '&' }))
+                    foreach (string str3 in str.Split(new[] { '&' }))
                     {
                         if (!string.IsNullOrEmpty(str3))
                         {
-                            string[] strArray = str3.Split(new [] { '=' });
+                            string[] strArray = str3.Split(new[] { '=' });
                             if (strArray.Length == 2)
                             {
                                 dictionary[strArray[0]] = strArray[1];
@@ -599,7 +575,7 @@ namespace Nop.Core
             }
             return (url + (string.IsNullOrEmpty(str) ? "" : ("?" + str)));
         }
-        
+
         /// <summary>
         /// Gets query string value by name
         /// </summary>
@@ -617,7 +593,7 @@ namespace Nop.Core
 
             return default(T);
         }
-        
+
         /// <summary>
         /// Restart application domain
         /// </summary>
@@ -639,12 +615,12 @@ namespace Nop.Core
                 if (!success)
                 {
                     throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
-                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine + 
+                        "To prevent this issue in the future, a change to the web server configuration is required:" + Environment.NewLine +
                         "- run the application in a full trust environment, or" + Environment.NewLine +
                         "- give the application write access to the 'web.config' file.");
                 }
-
                 success = TryWriteGlobalAsax();
+
                 if (!success)
                 {
                     throw new NopException("nopCommerce needs to be restarted due to a configuration change, but was unable to do so." + Environment.NewLine +
@@ -673,7 +649,7 @@ namespace Nop.Core
             get
             {
                 var response = _httpContext.Response;
-                return response.IsRequestBeingRedirected;   
+                return response.IsRequestBeingRedirected;
             }
         }
 

@@ -45,7 +45,6 @@ namespace Nop.Services.Security
         public static readonly PermissionRecord ManageTaxSettings = new PermissionRecord { Name = "Admin area. Manage Tax Settings", SystemName = "ManageTaxSettings", Category = "Configuration" };
         public static readonly PermissionRecord ManageShippingSettings = new PermissionRecord { Name = "Admin area. Manage Shipping Settings", SystemName = "ManageShippingSettings", Category = "Configuration" };
         public static readonly PermissionRecord ManageCurrencies = new PermissionRecord { Name = "Admin area. Manage Currencies", SystemName = "ManageCurrencies", Category = "Configuration" };
-        public static readonly PermissionRecord ManageMeasures = new PermissionRecord { Name = "Admin area. Manage Measures", SystemName = "ManageMeasures", Category = "Configuration" };
         public static readonly PermissionRecord ManageActivityLog = new PermissionRecord { Name = "Admin area. Manage Activity Log", SystemName = "ManageActivityLog", Category = "Configuration" };
         public static readonly PermissionRecord ManageAcl = new PermissionRecord { Name = "Admin area. Manage ACL", SystemName = "ManageACL", Category = "Configuration" };
         public static readonly PermissionRecord ManageEmailAccounts = new PermissionRecord { Name = "Admin area. Manage Email Accounts", SystemName = "ManageEmailAccounts", Category = "Configuration" };
@@ -63,8 +62,9 @@ namespace Nop.Services.Security
         public static readonly PermissionRecord EnableShoppingCart = new PermissionRecord { Name = "Public store. Enable shopping cart", SystemName = "EnableShoppingCart", Category = "PublicStore" };
         public static readonly PermissionRecord EnableWishlist = new PermissionRecord { Name = "Public store. Enable wishlist", SystemName = "EnableWishlist", Category = "PublicStore" };
         public static readonly PermissionRecord PublicStoreAllowNavigation = new PermissionRecord { Name = "Public store. Allow navigation", SystemName = "PublicStoreAllowNavigation", Category = "PublicStore" };
+        public static readonly PermissionRecord AccessClosedStore = new PermissionRecord { Name = "Public store. Access a closed store", SystemName = "AccessClosedStore", Category = "PublicStore" };
 
-        
+
         public virtual IEnumerable<PermissionRecord> GetPermissions()
         {
             return new[] 
@@ -104,7 +104,6 @@ namespace Nop.Services.Security
                 ManageTaxSettings,
                 ManageShippingSettings,
                 ManageCurrencies,
-                ManageMeasures,
                 ManageActivityLog,
                 ManageAcl,
                 ManageEmailAccounts,
@@ -118,7 +117,8 @@ namespace Nop.Services.Security
                 DisplayPrices,
                 EnableShoppingCart,
                 EnableWishlist,
-                PublicStoreAllowNavigation
+                PublicStoreAllowNavigation,
+                AccessClosedStore
             };
         }
 
@@ -166,7 +166,6 @@ namespace Nop.Services.Security
                         ManageTaxSettings,
                         ManageShippingSettings,
                         ManageCurrencies,
-                        ManageMeasures,
                         ManageActivityLog,
                         ManageAcl,
                         ManageEmailAccounts,
@@ -180,7 +179,8 @@ namespace Nop.Services.Security
                         DisplayPrices,
                         EnableShoppingCart,
                         EnableWishlist,
-                        PublicStoreAllowNavigation
+                        PublicStoreAllowNavigation,
+                        AccessClosedStore
                     }
                 },
                 new DefaultPermissionRecord 

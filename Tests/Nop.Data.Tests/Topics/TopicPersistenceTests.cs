@@ -24,10 +24,12 @@ namespace Nop.Data.Tests.Topics
                                    Password = "password",
                                    Title = "Title 1",
                                    Body = "Body 1",
+                                   Published = true,
                                    TopicTemplateId = 1,
                                    MetaKeywords = "Meta keywords",
                                    MetaDescription = "Meta description",
                                    MetaTitle = "Meta title",
+                                   SubjectToAcl = true,
                                    LimitedToStores = true
                                };
 
@@ -45,10 +47,12 @@ namespace Nop.Data.Tests.Topics
             fromDb.Password.ShouldEqual("password");
             fromDb.Title.ShouldEqual("Title 1");
             fromDb.Body.ShouldEqual("Body 1");
+            fromDb.Published.ShouldEqual(true);
             fromDb.TopicTemplateId.ShouldEqual(1);
             fromDb.MetaKeywords.ShouldEqual("Meta keywords");
             fromDb.MetaDescription.ShouldEqual("Meta description");
             fromDb.MetaTitle.ShouldEqual("Meta title");
+            fromDb.SubjectToAcl.ShouldEqual(true);
             fromDb.LimitedToStores.ShouldEqual(true);
         }
     }

@@ -4,6 +4,7 @@ using Nop.Core;
 using Nop.Core.Domain.Customers;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
+using Nop.Services.Orders;
 using Nop.Services.Security;
 using Nop.Services.Stores;
 
@@ -21,6 +22,7 @@ namespace Nop.Services.Customers
         private readonly INewsLetterSubscriptionService _newsLetterSubscriptionService;
         private readonly ILocalizationService _localizationService;
         private readonly IStoreService _storeService;
+        private readonly IRewardPointService _rewardPointService;
         private readonly RewardPointsSettings _rewardPointsSettings;
         private readonly CustomerSettings _customerSettings;
 
@@ -36,6 +38,7 @@ namespace Nop.Services.Customers
         /// <param name="newsLetterSubscriptionService">Newsletter subscription service</param>
         /// <param name="localizationService">Localization service</param>
         /// <param name="storeService">Store service</param>
+        /// <param name="rewardPointService">Reward points service</param>
         /// <param name="rewardPointsSettings">Reward points settings</param>
         /// <param name="customerSettings">Customer settings</param>
         public CustomerRegistrationService(ICustomerService customerService, 
@@ -43,6 +46,7 @@ namespace Nop.Services.Customers
             INewsLetterSubscriptionService newsLetterSubscriptionService,
             ILocalizationService localizationService,
             IStoreService storeService,
+            IRewardPointService rewardPointService,
             RewardPointsSettings rewardPointsSettings,
             CustomerSettings customerSettings)
         {
@@ -51,6 +55,7 @@ namespace Nop.Services.Customers
             this._newsLetterSubscriptionService = newsLetterSubscriptionService;
             this._localizationService = localizationService;
             this._storeService = storeService;
+            this._rewardPointService = rewardPointService;
             this._rewardPointsSettings = rewardPointsSettings;
             this._customerSettings = customerSettings;
         }
@@ -67,11 +72,9 @@ namespace Nop.Services.Customers
         /// <returns>Result</returns>
         public virtual CustomerLoginResults ValidateCustomer(string usernameOrEmail, string password)
         {
-            Customer customer;
-            if (_customerSettings.UsernamesEnabled)
-                customer = _customerService.GetCustomerByUsername(usernameOrEmail);
-            else
-                customer = _customerService.GetCustomerByEmail(usernameOrEmail);
+            var customer = _customerSettings.UsernamesEnabled ? 
+                _customerService.GetCustomerByUsername(usernameOrEmail) :
+                _customerService.GetCustomerByEmail(usernameOrEmail);
 
             if (customer == null)
                 return CustomerLoginResults.CustomerNotExist;
@@ -83,7 +86,7 @@ namespace Nop.Services.Customers
             if (!customer.IsRegistered())
                 return CustomerLoginResults.NotRegistered;
 
-            string pwd = "";
+            string pwd;
             switch (customer.PasswordFormat)
             {
                 case PasswordFormat.Encrypted:
@@ -218,7 +221,12 @@ namespace Nop.Services.Customers
             //Add reward points for customer registration (if enabled)
             if (_rewardPointsSettings.Enabled &&
                 _rewardPointsSettings.PointsForRegistration > 0)
-                request.Customer.AddRewardPointsHistoryEntry(_rewardPointsSettings.PointsForRegistration, _localizationService.GetResource("RewardPoints.Message.EarnedForRegistration"));
+            {
+                _rewardPointService.AddRewardPointsHistoryEntry(request.Customer, 
+                    _rewardPointsSettings.PointsForRegistration,
+                    request.StoreId,
+                    _localizationService.GetResource("RewardPoints.Message.EarnedForRegistration"));
+            }
 
             _customerService.UpdateCustomer(request.Customer);
             return result;
@@ -258,7 +266,7 @@ namespace Nop.Services.Customers
             if (request.ValidateRequest)
             {
                 //password
-                string oldPwd = "";
+                string oldPwd;
                 switch (customer.PasswordFormat)
                 {
                     case PasswordFormat.Encrypted:

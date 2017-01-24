@@ -150,6 +150,7 @@ namespace Nop.Services.Catalog
                 Gtin = product.Gtin,
                 IsGiftCard = product.IsGiftCard,
                 GiftCardType = product.GiftCardType,
+                OverriddenGiftCardAmount = product.OverriddenGiftCardAmount,
                 RequireOtherProducts = product.RequireOtherProducts,
                 RequiredProductIds = product.RequiredProductIds,
                 AutomaticallyAddRequiredProducts = product.AutomaticallyAddRequiredProducts,
@@ -193,6 +194,7 @@ namespace Nop.Services.Catalog
                 OrderMaximumQuantity = product.OrderMaximumQuantity,
                 AllowedQuantities = product.AllowedQuantities,
                 AllowAddingOnlyExistingAttributeCombinations = product.AllowAddingOnlyExistingAttributeCombinations,
+                NotReturnable = product.NotReturnable,
                 DisableBuyButton = product.DisableBuyButton,
                 DisableWishlistButton = product.DisableWishlistButton,
                 AvailableForPreOrder = product.AvailableForPreOrder,
@@ -212,6 +214,9 @@ namespace Nop.Services.Catalog
                 BasepriceUnitId = product.BasepriceUnitId,
                 BasepriceBaseAmount = product.BasepriceBaseAmount,
                 BasepriceBaseUnitId = product.BasepriceBaseUnitId,
+                MarkAsNew = product.MarkAsNew,
+                MarkAsNewStartDateTimeUtc = product.MarkAsNewStartDateTimeUtc,
+                MarkAsNewEndDateTimeUtc = product.MarkAsNewEndDateTimeUtc,
                 Weight = product.Weight,
                 Length = product.Length,
                 Width = product.Width,
@@ -403,6 +408,7 @@ namespace Nop.Services.Catalog
                     ValidationFileAllowedExtensions = productAttributeMapping.ValidationFileAllowedExtensions,
                     ValidationFileMaximumSize = productAttributeMapping.ValidationFileMaximumSize,
                     DefaultValue = productAttributeMapping.DefaultValue,
+                    //UNDONE copy ConditionAttributeXml (we should replace attribute IDs with new values)
                 };
                 _productAttributeService.InsertProductAttributeMapping(productAttributeMappingCopy);
                 //save associated value (used for combinations copying)
@@ -432,6 +438,24 @@ namespace Nop.Services.Catalog
                         DisplayOrder = productAttributeValue.DisplayOrder,
                         PictureId = attributeValuePictureId,
                     };
+                    //picture associated to "iamge square" attribute type (if exists)
+                    if (productAttributeValue.ImageSquaresPictureId > 0)
+                    {
+                        var origImageSquaresPicture = _pictureService.GetPictureById(productAttributeValue.ImageSquaresPictureId);
+                        if (origImageSquaresPicture != null)
+                        {
+                            //copy the picture
+                            var imageSquaresPictureCopy = _pictureService.InsertPicture(
+                                _pictureService.LoadPictureBinary(origImageSquaresPicture),
+                                origImageSquaresPicture.MimeType,
+                                origImageSquaresPicture.SeoFilename,
+                                origImageSquaresPicture.AltAttribute,
+                                origImageSquaresPicture.TitleAttribute);
+                            attributeValueCopy.ImageSquaresPictureId = imageSquaresPictureCopy.Id;
+                        }
+                    }
+
+
                     _productAttributeService.InsertProductAttributeValue(attributeValueCopy);
 
                     //save associated value (used for combinations copying)

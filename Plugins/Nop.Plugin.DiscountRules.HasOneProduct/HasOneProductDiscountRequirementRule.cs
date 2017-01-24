@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Plugins;
 using Nop.Services.Configuration;
@@ -23,22 +22,25 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
         /// Check discount requirement
         /// </summary>
         /// <param name="request">Object that contains all information required to check the requirement (Current customer, discount, etc)</param>
-        /// <returns>true - requirement is met; otherwise, false</returns>
-        public bool CheckRequirement(CheckDiscountRequirementRequest request)
+        /// <returns>Result</returns>
+        public DiscountRequirementValidationResult CheckRequirement(DiscountRequirementValidationRequest request)
         {
             if (request == null)
                 throw new ArgumentNullException("request");
 
-            if (request.DiscountRequirement == null)
-                throw new NopException("Discount requirement is not set");
+            //invalid by default
+            var result = new DiscountRequirementValidationResult();
 
-            var restrictedProductIds = _settingService.GetSettingByKey<string>(string.Format("DiscountRequirement.RestrictedProductIds-{0}", request.DiscountRequirement.Id));
-
+            var restrictedProductIds = _settingService.GetSettingByKey<string>(string.Format("DiscountRequirement.RestrictedProductIds-{0}", request.DiscountRequirementId));
             if (String.IsNullOrWhiteSpace(restrictedProductIds))
-                return true;
+            {
+                //valid
+                result.IsValid = true;
+                return result;
+            }
 
             if (request.Customer == null)
-                return false;
+                return result;
 
             //we support three ways of specifying products:
             //1. The comma-separated list of product identifiers (e.g. 77, 123, 156).
@@ -50,8 +52,8 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim())
                 .ToList();
-            if (restrictedProducts.Count == 0)
-                return false;
+            if (!restrictedProducts.Any())
+                return result;
             
             //group products in the cart by product ID
             //it could be the same product with distinct product attributes
@@ -80,15 +82,15 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
                             int restrictedProductId;
                             if (!int.TryParse(restrictedProduct.Split(new[] { ':' })[0], out restrictedProductId))
                                 //parsing error; exit;
-                                return false;
+                                return result;
                             int quantityMin;
                             if (!int.TryParse(restrictedProduct.Split(new[] { ':' })[1].Split(new[] { '-' })[0], out quantityMin))
                                 //parsing error; exit;
-                                return false;
+                                return result;
                             int quantityMax;
                             if (!int.TryParse(restrictedProduct.Split(new[] { ':' })[1].Split(new[] { '-' })[1], out quantityMax))
                                 //parsing error; exit;
-                                return false;
+                                return result;
 
                             if (sci.ProductId == restrictedProductId && quantityMin <= sci.TotalQuantity && sci.TotalQuantity <= quantityMax)
                             {
@@ -103,11 +105,11 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
                             int restrictedProductId;
                             if (!int.TryParse(restrictedProduct.Split(new[] { ':' })[0], out restrictedProductId))
                                 //parsing error; exit;
-                                return false;
+                                return result;
                             int quantity;
                             if (!int.TryParse(restrictedProduct.Split(new[] { ':' })[1], out quantity))
                                 //parsing error; exit;
-                                return false;
+                                return result;
 
                             if (sci.ProductId == restrictedProductId && sci.TotalQuantity == quantity)
                             {
@@ -138,9 +140,13 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
             }
 
             if (found)
-                return true;
+            {
+                //valid
+                result.IsValid = true;
+                return result;
+            }
 
-            return false;
+            return result;
         }
 
         /// <summary>
@@ -161,7 +167,7 @@ namespace Nop.Plugin.DiscountRules.HasOneProduct
         public override void Install()
         {
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.DiscountRules.HasOneProduct.Fields.Products", "Restricted products");
+            this.AddOrUpdatePluginLocaleResource("Plugins.DiscountRules.HasOneProduct.Fields.Products", "Restricted products [and quantity range]");
             this.AddOrUpdatePluginLocaleResource("Plugins.DiscountRules.HasOneProduct.Fields.Products.Hint", "The comma-separated list of product identifiers (e.g. 77, 123, 156). You can find a product ID on its details page. You can also specify the comma-separated list of product identifiers with quantities ({Product ID}:{Quantity}. for example, 77:1, 123:2, 156:3). And you can also specify the comma-separated list of product identifiers with quantity range ({Product ID}:{Min quantity}-{Max quantity}. for example, 77:1-3, 123:2-5, 156:3-8).");
             this.AddOrUpdatePluginLocaleResource("Plugins.DiscountRules.HasOneProduct.Fields.Products.AddNew", "Add product");
             this.AddOrUpdatePluginLocaleResource("Plugins.DiscountRules.HasOneProduct.Fields.Products.Choose", "Choose");

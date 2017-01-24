@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Web.Mvc;
 using Nop.Core;
+using Nop.Core.Caching;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Orders;
@@ -14,6 +17,7 @@ using Nop.Services.Messages;
 using Nop.Services.Orders;
 using Nop.Services.Seo;
 using Nop.Web.Framework.Security;
+using Nop.Web.Infrastructure.Cache;
 using Nop.Web.Models.Order;
 
 namespace Nop.Web.Controllers
@@ -22,6 +26,7 @@ namespace Nop.Web.Controllers
     {
 		#region Fields
 
+        private readonly IReturnRequestService _returnRequestService;
         private readonly IOrderService _orderService;
         private readonly IWorkContext _workContext;
         private readonly IStoreContext _storeContext;
@@ -32,15 +37,16 @@ namespace Nop.Web.Controllers
         private readonly ICustomerService _customerService;
         private readonly IWorkflowMessageService _workflowMessageService;
         private readonly IDateTimeHelper _dateTimeHelper;
-
         private readonly LocalizationSettings _localizationSettings;
-        private readonly OrderSettings _orderSettings;
+        private readonly ICacheManager _cacheManager;
+        private readonly ICustomNumberFormatter _customNumberFormatter;
 
         #endregion
 
-		#region Constructors
+        #region Constructors
 
-        public ReturnRequestController(IOrderService orderService, 
+        public ReturnRequestController(IReturnRequestService returnRequestService,
+            IOrderService orderService, 
             IWorkContext workContext, 
             IStoreContext storeContext,
             ICurrencyService currencyService, 
@@ -51,8 +57,10 @@ namespace Nop.Web.Controllers
             IWorkflowMessageService workflowMessageService,
             IDateTimeHelper dateTimeHelper,
             LocalizationSettings localizationSettings,
-            OrderSettings orderSettings)
+            ICacheManager cacheManager, 
+            ICustomNumberFormatter customNumberFormatter)
         {
+            this._returnRequestService = returnRequestService;
             this._orderService = orderService;
             this._workContext = workContext;
             this._storeContext = storeContext;
@@ -63,9 +71,9 @@ namespace Nop.Web.Controllers
             this._customerService = customerService;
             this._workflowMessageService = workflowMessageService;
             this._dateTimeHelper = dateTimeHelper;
-
             this._localizationSettings = localizationSettings;
-            this._orderSettings = orderSettings;
+            this._cacheManager = cacheManager;
+            this._customNumberFormatter = customNumberFormatter;
         }
 
         #endregion
@@ -84,29 +92,35 @@ namespace Nop.Web.Controllers
             model.OrderId = order.Id;
 
             //return reasons
-            if (_orderSettings.ReturnRequestReasons != null)
-                foreach (var rrr in _orderSettings.ReturnRequestReasons)
+            model.AvailableReturnReasons = _cacheManager.Get(string.Format(ModelCacheEventConsumer.RETURNREQUESTREASONS_MODEL_KEY, _workContext.WorkingLanguage.Id),
+                () =>
                 {
-                    model.AvailableReturnReasons.Add(new SelectListItem
+                    var reasons = new List<SubmitReturnRequestModel.ReturnRequestReasonModel>();
+                    foreach (var rrr in _returnRequestService.GetAllReturnRequestReasons())
+                        reasons.Add(new SubmitReturnRequestModel.ReturnRequestReasonModel()
                         {
-                            Text = rrr,
-                            Value = rrr
+                            Id = rrr.Id,
+                            Name = rrr.GetLocalized(x => x.Name)
                         });
-                }
+                    return reasons;
+                });
 
             //return actions
-            if (_orderSettings.ReturnRequestActions != null)
-                foreach (var rra in _orderSettings.ReturnRequestActions)
+            model.AvailableReturnActions = _cacheManager.Get(string.Format(ModelCacheEventConsumer.RETURNREQUESTACTIONS_MODEL_KEY, _workContext.WorkingLanguage.Id),
+                () =>
                 {
-                    model.AvailableReturnActions.Add(new SelectListItem
-                    {
-                        Text = rra,
-                        Value = rra
-                    });
-                }
+                    var actions = new List<SubmitReturnRequestModel.ReturnRequestActionModel>();
+                    foreach (var rra in _returnRequestService.GetAllReturnRequestActions())
+                        actions.Add(new SubmitReturnRequestModel.ReturnRequestActionModel()
+                        {
+                            Id = rra.Id,
+                            Name = rra.GetLocalized(x => x.Name)
+                        });
+                    return actions;
+                });
 
-            //products
-            var orderItems = _orderService.GetAllOrderItems(order.Id, null, null, null, null, null, null);
+            //returnable products
+            var orderItems = order.OrderItems.Where(oi => !oi.Product.NotReturnable);
             foreach (var orderItem in orderItems)
             {
                 var orderItemModel = new SubmitReturnRequestModel.OrderItemModel
@@ -150,7 +164,7 @@ namespace Nop.Web.Controllers
 
             var model = new CustomerReturnRequestsModel();
 
-            var returnRequests = _orderService.SearchReturnRequests(_storeContext.CurrentStore.Id, 
+            var returnRequests = _returnRequestService.SearchReturnRequests(_storeContext.CurrentStore.Id, 
                 _workContext.CurrentCustomer.Id);
             foreach (var returnRequest in returnRequests)
             {
@@ -162,6 +176,7 @@ namespace Nop.Web.Controllers
                     var itemModel = new CustomerReturnRequestsModel.ReturnRequestModel
                     {
                         Id = returnRequest.Id,
+                        CustomNumber = returnRequest.CustomNumber,
                         ReturnRequestStatus = returnRequest.ReturnRequestStatus.GetLocalizedEnum(_localizationService, _workContext),
                         ProductId = product.Id,
                         ProductName = product.GetLocalized(x => x.Name),
@@ -196,6 +211,7 @@ namespace Nop.Web.Controllers
 
         [HttpPost, ActionName("ReturnRequest")]
         [ValidateInput(false)]
+        [PublicAntiForgery]
         public ActionResult ReturnRequestSubmit(int orderId, SubmitReturnRequestModel model, FormCollection form)
         {
             var order = _orderService.GetOrderById(orderId);
@@ -206,7 +222,10 @@ namespace Nop.Web.Controllers
                 return RedirectToRoute("HomePage");
 
             int count = 0;
-            foreach (var orderItem in order.OrderItems)
+
+            //returnable products
+            var orderItems = order.OrderItems.Where(oi => !oi.Product.NotReturnable);
+            foreach (var orderItem in orderItems)
             {
                 int quantity = 0; //parse quantity
                 foreach (string formKey in form.AllKeys)
@@ -217,14 +236,18 @@ namespace Nop.Web.Controllers
                     }
                 if (quantity > 0)
                 {
+                    var rrr = _returnRequestService.GetReturnRequestReasonById(model.ReturnRequestReasonId);
+                    var rra = _returnRequestService.GetReturnRequestActionById(model.ReturnRequestActionId);
+
                     var rr = new ReturnRequest
                     {
+                        CustomNumber = "",
                         StoreId = _storeContext.CurrentStore.Id,
                         OrderItemId = orderItem.Id,
                         Quantity = quantity,
                         CustomerId = _workContext.CurrentCustomer.Id,
-                        ReasonForReturn = model.ReturnReason,
-                        RequestedAction = model.ReturnAction,
+                        ReasonForReturn = rrr != null ? rrr.GetLocalized(x => x.Name) : "not available",
+                        RequestedAction = rra != null ? rra.GetLocalized(x => x.Name) : "not available",
                         CustomerComments = model.Comments,
                         StaffNotes = string.Empty,
                         ReturnRequestStatus = ReturnRequestStatus.Pending,
@@ -232,6 +255,9 @@ namespace Nop.Web.Controllers
                         UpdatedOnUtc = DateTime.UtcNow
                     };
                     _workContext.CurrentCustomer.ReturnRequests.Add(rr);
+                    _customerService.UpdateCustomer(_workContext.CurrentCustomer);
+                    //set return request custom number
+                    rr.CustomNumber = _customNumberFormatter.GenerateReturnRequestCustomNumber(rr);
                     _customerService.UpdateCustomer(_workContext.CurrentCustomer);
                     //notify store owner here (email)
                     _workflowMessageService.SendNewReturnRequestStoreOwnerNotification(rr, orderItem, _localizationSettings.DefaultAdminLanguageId);

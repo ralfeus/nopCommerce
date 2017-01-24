@@ -98,27 +98,31 @@ namespace Nop.Admin.Controllers
             if (model == null)
                 throw new ArgumentNullException("model");
 
-            model.AvailableStores = _storeService
-                .GetAllStores()
-                .Select(s => s.ToModel())
-                .ToList();
-            if (!excludeProperties)
+            if (!excludeProperties && country != null)
+                model.SelectedStoreIds = _storeMappingService.GetStoresIdsWithAccess(country).ToList();
+
+            var allStores = _storeService.GetAllStores();
+            foreach (var store in allStores)
             {
-                if (country != null)
+                model.AvailableStores.Add(new SelectListItem
                 {
-                    model.SelectedStoreIds = _storeMappingService.GetStoresIdsWithAccess(country);
-                }
+                    Text = store.Name,
+                    Value = store.Id.ToString(),
+                    Selected = model.SelectedStoreIds.Contains(store.Id)
+                });
             }
         }
 
         [NonAction]
         protected virtual void SaveStoreMappings(Country country, CountryModel model)
         {
+            country.LimitedToStores = model.SelectedStoreIds.Any();
+
             var existingStoreMappings = _storeMappingService.GetStoreMappings(country);
             var allStores = _storeService.GetAllStores();
             foreach (var store in allStores)
             {
-                if (model.SelectedStoreIds != null && model.SelectedStoreIds.Contains(store.Id))
+                if (model.SelectedStoreIds.Contains(store.Id))
                 {
                     //new store
                     if (existingStoreMappings.Count(sm => sm.StoreId == store.Id) == 0)
@@ -157,7 +161,7 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCountries))
                 return AccessDeniedView();
 
-            var countries = _countryService.GetAllCountries(true);
+            var countries = _countryService.GetAllCountries(showHidden: true);
             var gridModel = new DataSourceResult
             {
                 Data = countries.Select(x => x.ToModel()),
@@ -200,7 +204,15 @@ namespace Nop.Admin.Controllers
                 SaveStoreMappings(country, model);
 
                 SuccessNotification(_localizationService.GetResource("Admin.Configuration.Countries.Added"));
-                return continueEditing ? RedirectToAction("Edit", new { id = country.Id }) : RedirectToAction("List");
+
+                if (continueEditing)
+                {
+                    //selected tab
+                    SaveSelectedTabName();
+
+                    return RedirectToAction("Edit", new { id = country.Id });
+                }
+                return RedirectToAction("List");
             }
 
             //If we got this far, something failed, redisplay form
@@ -256,7 +268,7 @@ namespace Nop.Admin.Controllers
                 if (continueEditing)
                 {
                     //selected tab
-                    SaveSelectedTabIndex();
+                    SaveSelectedTabName();
 
                     return RedirectToAction("Edit", new {id = country.Id});
                 }
@@ -344,7 +356,7 @@ namespace Nop.Admin.Controllers
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageCountries))
                 return AccessDeniedView();
 
-            var states = _stateProvinceService.GetStateProvincesByCountryId(countryId, true);
+            var states = _stateProvinceService.GetStateProvincesByCountryId(countryId, showHidden: true);
 
             var gridModel = new DataSourceResult
             {
@@ -479,7 +491,7 @@ namespace Nop.Admin.Controllers
                 throw new ArgumentNullException("countryId");
 
             var country = _countryService.GetCountryById(Convert.ToInt32(countryId));
-            var states = country != null ? _stateProvinceService.GetStateProvincesByCountryId(country.Id, true).ToList() : new List<StateProvince>();
+            var states = country != null ? _stateProvinceService.GetStateProvincesByCountryId(country.Id, showHidden: true).ToList() : new List<StateProvince>();
             var result = (from s in states
                          select new { id = s.Id, name = s.Name }).ToList();
             if (addAsterisk.HasValue && addAsterisk.Value)
@@ -504,7 +516,7 @@ namespace Nop.Admin.Controllers
                 else
                 {
                     //some country is selected
-                    if (result.Count == 0)
+                    if (!result.Any())
                     {
                         //country does not have states
                         result.Insert(0, new { id = 0, name = _localizationService.GetResource("Admin.Address.OtherNonUS") });
@@ -536,7 +548,7 @@ namespace Nop.Admin.Controllers
             var states = _stateProvinceService.GetStateProvinces(true);
             string result = _exportManager.ExportStatesToTxt(states);
 
-            return File(Encoding.UTF8.GetBytes(result), "text/csv", fileName);
+            return File(Encoding.UTF8.GetBytes(result), MimeTypes.TextCsv, fileName);
         }
 
         [HttpPost]

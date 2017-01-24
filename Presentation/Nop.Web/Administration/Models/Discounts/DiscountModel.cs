@@ -61,6 +61,9 @@ namespace Nop.Admin.Models.Discounts
         [AllowHtml]
         public string CouponCode { get; set; }
 
+        [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.IsCumulative")]
+        public bool IsCumulative { get; set; }
+
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.DiscountLimitation")]
         public int DiscountLimitationId { get; set; }
 
@@ -70,7 +73,9 @@ namespace Nop.Admin.Models.Discounts
         [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.MaximumDiscountedQuantity")]
         [UIHint("Int32Nullable")]
         public int? MaximumDiscountedQuantity { get; set; }
-
+        
+        [NopResourceDisplayName("Admin.Promotions.Discounts.Fields.AppliedToSubCategories")]
+        public bool AppliedToSubCategories { get; set; }
 
         [NopResourceDisplayName("Admin.Promotions.Discounts.Requirements.DiscountRequirementType")]
         public string AddDiscountRequirement { get; set; }

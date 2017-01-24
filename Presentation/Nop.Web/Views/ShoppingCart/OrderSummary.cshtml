@@ -1,5 +1,6 @@
 @model ShoppingCartModel
 @using Nop.Core
+@using Nop.Core.Domain.Tax
 @using Nop.Core.Infrastructure
 @using Nop.Web.Models.ShoppingCart;
 @{
@@ -22,8 +23,9 @@
        </div>
        }     
        @*we add enctype = "multipart/form-data" because "File upload" attribute control type requires it*@
-       using (Html.BeginRouteForm("ShoppingCart", FormMethod.Post, new { enctype = "multipart/form-data" }))
+       using (Html.BeginRouteForm("ShoppingCart", FormMethod.Post, new { enctype = "multipart/form-data", id = "shopping-cart-form" }))
        {
+           @Html.AntiForgeryToken()
        <div class="table-wrapper">
            <table class="cart">
                <colgroup>
@@ -185,6 +187,15 @@
                </tbody>
            </table>
        </div>
+        if (Model.IsEditable && Model.Items.Count > 0 && Model.DisplayTaxShippingInfo)
+        {
+            var inclTax = EngineContext.Current.Resolve<IWorkContext>().TaxDisplayType == TaxDisplayType.IncludingTax;
+            //tax info is already included in the price (incl/excl tax). that's why we display only shipping info here
+            //of course, you can modify appropriate locales to include VAT info there
+        <div class="tax-shipping-info">
+            @T(inclTax ? "ShoppingCart.TaxShipping.InclTax" : "ShoppingCart.TaxShipping.ExclTax", Url.RouteUrl("Topic", new { SeName = Html.GetTopicSeName("shippinginfo") }))
+        </div>
+        }
        <div class="cart-options">
            @if (Model.IsEditable)
            {
@@ -232,12 +243,25 @@
                {
                    if (Model.TermsOfServiceOnShoppingCartPage)
                    {
-                       <div id="terms-of-service-warning-box" title="@T("Checkout.TermsOfService")" style="display:none;">
+                       <div id="terms-of-service-warning-box" title="@T("Checkout.TermsOfService")" style="display: none;">
                            <p>@T("Checkout.TermsOfService.PleaseAccept")</p>
                        </div>
                        <div class="terms-of-service">
-                           <input id="termsofservice" type="checkbox" name="termsofservice" />
-                           <span>@T("Checkout.TermsOfService.IAccept")<a class="read" onclick="javascript:OpenWindow('@Url.RouteUrl("TopicPopup", new { SystemName = "conditionsofuse" })', 450, 500, true)">@T("Checkout.TermsOfService.Read")</a></span>
+                           <input id="termsofservice" type="checkbox" name="termsofservice"/>
+                           <span>
+                                @T("Checkout.TermsOfService.IAccept")
+                               <a class="read" id="read-terms">
+                                    @T("Checkout.TermsOfService.Read")
+                                </a>
+                            </span>
+                           <script>
+                               $(document).ready(function() {
+                                   $('#read-terms').on('click', function(e) {
+                                       e.preventDefault();
+                                       displayPopupContentFromUrl('@Url.RouteUrl("TopicPopup", new {SystemName = "conditionsofuse"})', '@T("Checkout.TermsOfService")');
+                                   });
+                               });
+                           </script>
                        </div>
                    }
                    <div class="checkout-buttons">

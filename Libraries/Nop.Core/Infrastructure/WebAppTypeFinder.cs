@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Web;
 using System.Web.Hosting;
-using Nop.Core.Configuration;
 
 namespace Nop.Core.Infrastructure
 {
@@ -20,19 +19,10 @@ namespace Nop.Core.Infrastructure
 
         #endregion
 
-        #region Ctor
-
-        public WebAppTypeFinder(NopConfig config)
-        {
-            this._ensureBinFolderAssembliesLoaded = config.DynamicDiscovery;
-        }
-
-        #endregion
-
         #region Properties
 
         /// <summary>
-        /// Gets or sets wether assemblies in the bin folder of the web application should be specificly checked for beeing loaded on application load. This is need in situations where plugins need to be loaded in the AppDomain after the application been reloaded.
+        /// Gets or sets whether assemblies in the bin folder of the web application should be specifically checked for being loaded on application load. This is need in situations where plugins need to be loaded in the AppDomain after the application been reloaded.
         /// </summary>
         public bool EnsureBinFolderAssembliesLoaded
         {
