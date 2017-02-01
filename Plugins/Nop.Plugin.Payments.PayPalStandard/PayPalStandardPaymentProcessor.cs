@@ -11,6 +11,7 @@ using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Domain.Shipping;
+using Nop.Core.Infrastructure;
 using Nop.Core.Plugins;
 using Nop.Plugin.Payments.PayPalStandard.Controllers;
 using Nop.Services.Configuration;
@@ -203,8 +204,8 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 int x = 1;
                 foreach (var item in cartItems)
                 {
-                    var unitPriceExclTax = item.UnitPriceExclTax;
-                    var priceExclTax = item.PriceExclTax;
+                    var unitPriceExclTax = this.ConvertToOrderCurrency(postProcessPaymentRequest, item.UnitPriceExclTax);
+                    var priceExclTax = this.ConvertToOrderCurrency(postProcessPaymentRequest, item.PriceExclTax);
                     //round
                     var unitPriceExclTaxRounded = Math.Round(unitPriceExclTax, 2);
                     builder.AppendFormat("&item_name_" + x + "={0}", HttpUtility.UrlEncode(item.Product.Name));
@@ -218,7 +219,9 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 var attributeValues = _checkoutAttributeParser.ParseCheckoutAttributeValues(postProcessPaymentRequest.Order.CheckoutAttributesXml);
                 foreach (var val in attributeValues)
                 {
-                    var attPrice = _taxService.GetCheckoutAttributePrice(val, false, postProcessPaymentRequest.Order.Customer);
+                    var attPrice = this.ConvertToOrderCurrency(
+                        postProcessPaymentRequest,
+                        this._taxService.GetCheckoutAttributePrice(val, false, postProcessPaymentRequest.Order.Customer));
                     //round
                     var attPriceRounded = Math.Round(attPrice, 2);
                     if (attPrice > decimal.Zero) //if it has a price
@@ -239,7 +242,8 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 //order totals
 
                 //shipping
-                var orderShippingExclTax = postProcessPaymentRequest.Order.OrderShippingExclTax;
+                var orderShippingExclTax = this.ConvertToOrderCurrency(
+                    postProcessPaymentRequest, postProcessPaymentRequest.Order.OrderShippingExclTax);
                 var orderShippingExclTaxRounded = Math.Round(orderShippingExclTax, 2);
                 if (orderShippingExclTax > decimal.Zero)
                 {
@@ -251,7 +255,8 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 }
 
                 //payment method additional fee
-                var paymentMethodAdditionalFeeExclTax = postProcessPaymentRequest.Order.PaymentMethodAdditionalFeeExclTax;
+                var paymentMethodAdditionalFeeExclTax = this.ConvertToOrderCurrency(
+                    postProcessPaymentRequest, postProcessPaymentRequest.Order.PaymentMethodAdditionalFeeExclTax);
                 var paymentMethodAdditionalFeeExclTaxRounded = Math.Round(paymentMethodAdditionalFeeExclTax, 2);
                 if (paymentMethodAdditionalFeeExclTax > decimal.Zero)
                 {
@@ -263,7 +268,7 @@ namespace Nop.Plugin.Payments.PayPalStandard
                 }
 
                 //tax
-                var orderTax = postProcessPaymentRequest.Order.OrderTax;
+                var orderTax = this.ConvertToOrderCurrency(postProcessPaymentRequest, postProcessPaymentRequest.Order.OrderTax);
                 var orderTaxRounded = Math.Round(orderTax, 2);
                 if (orderTax > decimal.Zero)
                 {
@@ -278,12 +283,12 @@ namespace Nop.Plugin.Payments.PayPalStandard
                     x++;
                 }
 
-                if (cartTotal > postProcessPaymentRequest.Order.OrderTotal)
+                if (cartTotal > this.ConvertToOrderCurrency(postProcessPaymentRequest, postProcessPaymentRequest.Order.OrderTotal))
                 {
                     /* Take the difference between what the order total is and what it should be and use that as the "discount".
                      * The difference equals the amount of the gift card and/or reward points used. 
                      */
-                    decimal discountTotal = cartTotal - postProcessPaymentRequest.Order.OrderTotal;
+                    decimal discountTotal = cartTotal - this.ConvertToOrderCurrency(postProcessPaymentRequest, postProcessPaymentRequest.Order.OrderTotal);
                     discountTotal = Math.Round(discountTotal, 2);
                     //gift card or rewared point amount applied to cart in nopCommerce - shows in Paypal as "discount"
                     builder.AppendFormat("&discount_amount_cart={0}", discountTotal.ToString("0.00", CultureInfo.InvariantCulture));
@@ -293,13 +298,17 @@ namespace Nop.Plugin.Payments.PayPalStandard
             {
                 //pass order total
                 builder.AppendFormat("&item_name=Order Number {0}", postProcessPaymentRequest.Order.Id);
-                var orderTotal = Math.Round(postProcessPaymentRequest.Order.OrderTotal, 2);
+                var orderTotal = Math.Round(
+                    this.ConvertToOrderCurrency(postProcessPaymentRequest, postProcessPaymentRequest.Order.OrderTotal), 2);
                 builder.AppendFormat("&amount={0}", orderTotal.ToString("0.00", CultureInfo.InvariantCulture));
             }
 
             builder.AppendFormat("&custom={0}", postProcessPaymentRequest.Order.OrderGuid);
             builder.AppendFormat("&charset={0}", "utf-8");
-            builder.Append(string.Format("&no_note=1&currency_code={0}", HttpUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
+//            builder.Append(string.Format("&no_note=1&currency_code={0}", HttpUtility.UrlEncode(_currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode)));
+            builder.Append(string.Format(
+                "&no_note=1&currency_code={0}",
+                HttpUtility.UrlEncode(postProcessPaymentRequest.Order.CustomerCurrencyCode)));
             builder.AppendFormat("&invoice={0}", postProcessPaymentRequest.Order.Id);
             builder.AppendFormat("&rm=2", new object[0]);
             if (postProcessPaymentRequest.Order.ShippingStatus != ShippingStatus.ShippingNotRequired)
@@ -351,6 +360,13 @@ namespace Nop.Plugin.Payments.PayPalStandard
             builder.AppendFormat("&zip={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.ZipPostalCode));
             builder.AppendFormat("&email={0}", HttpUtility.UrlEncode(postProcessPaymentRequest.Order.BillingAddress.Email));
             _httpContext.Response.Redirect(builder.ToString());
+        }
+
+        private decimal ConvertToOrderCurrency(PostProcessPaymentRequest postProcessPaymentRequest, decimal amount)
+        {
+            return this._currencyService.ConvertFromPrimaryStoreCurrency(
+                amount,
+                this._currencyService.GetCurrencyByCode(postProcessPaymentRequest.Order.CustomerCurrencyCode));
         }
 
         /// <summary>

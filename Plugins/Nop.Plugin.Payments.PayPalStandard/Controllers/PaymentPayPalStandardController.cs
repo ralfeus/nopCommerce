@@ -9,6 +9,7 @@ using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Plugin.Payments.PayPalStandard.Models;
 using Nop.Services.Configuration;
+using Nop.Services.Directory;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Orders;
@@ -32,6 +33,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
         private readonly IWebHelper _webHelper;
         private readonly PaymentSettings _paymentSettings;
         private readonly PayPalStandardPaymentSettings _payPalStandardPaymentSettings;
+        private readonly ICurrencyService _currencyService;
 
         public PaymentPayPalStandardController(IWorkContext workContext,
             IStoreService storeService, 
@@ -44,7 +46,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             ILogger logger, 
             IWebHelper webHelper,
             PaymentSettings paymentSettings,
-            PayPalStandardPaymentSettings payPalStandardPaymentSettings)
+            PayPalStandardPaymentSettings payPalStandardPaymentSettings, ICurrencyService currencyService)
         {
             this._workContext = workContext;
             this._storeService = storeService;
@@ -58,6 +60,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             this._webHelper = webHelper;
             this._paymentSettings = paymentSettings;
             this._payPalStandardPaymentSettings = payPalStandardPaymentSettings;
+            _currencyService = currencyService;
         }
         
         [AdminAuthorize]
@@ -253,9 +256,12 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                     //load settings for a chosen store scope
                     var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
                     var payPalStandardPaymentSettings = _settingService.LoadSetting<PayPalStandardPaymentSettings>(storeScope);
+                    var orderTotalOrderCurrency = this._currencyService.ConvertFromPrimaryStoreCurrency(
+                        order.OrderTotal, this._currencyService.GetCurrencyByCode(order.CustomerCurrencyCode));
 
                     //validate order total
-                    if (payPalStandardPaymentSettings.PdtValidateOrderTotal && !Math.Round(mc_gross, 2).Equals(Math.Round(order.OrderTotal, 2)))
+                    if (payPalStandardPaymentSettings.PdtValidateOrderTotal &&
+                        !Math.Round(mc_gross, 2).Equals(Math.Round(orderTotalOrderCurrency, 2)))
                     {
                         string errorStr = string.Format("PayPal PDT. Returned order total {0} doesn't equal order total {1}. Order# {2}.", mc_gross, order.OrderTotal, order.Id);
                         //log
