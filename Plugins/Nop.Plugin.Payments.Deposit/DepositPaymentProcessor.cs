@@ -12,6 +12,7 @@ using Nop.Plugin.Payments.Deposit.Controllers;
 using Nop.Plugin.Payments.Deposit.Extensions;
 using Nop.Services.Cms;
 using Nop.Services.Customers;
+using Nop.Services.Directory;
 using Nop.Services.Localization;
 using Nop.Services.Payments;
 using Nop.Web.Framework.Menu;
@@ -21,9 +22,12 @@ namespace Nop.Plugin.Payments.Deposit
     public class DepositPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin, IAdminMenuPlugin
     {
         private readonly IWorkContext _workContext;
+        private readonly ICurrencyService _currencyService;
 
-        public DepositPaymentProcessor(IWorkContext workContext) {
+        public DepositPaymentProcessor(IWorkContext workContext, ICurrencyService currencyService)
+        {
             this._workContext = workContext;
+            _currencyService = currencyService;
         }
 
         public void GetConfigurationRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
@@ -43,15 +47,31 @@ namespace Nop.Plugin.Payments.Deposit
         public override void Install()
         {
             //locales
-            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.AccountNavigationDeposit", "Deposit");
-            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.CustomerDeposit", "Customer deposit");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.CustomerDeposit", "Your deposit");
             this.AddOrUpdatePluginLocaleResource("Payment.Deposit.Charge", "Charge deposit");
-            // Payment.Deposit.DepositAmount
-            // "Payment.Deposit.ProceedPayment"
-            // "Payment.Deposit.TransactionAmount"
-            // Payment.Deposit.TransactionID
-            // Payment.Deposit.PaymentStatus
-            // Payment.Deposit.CreatedOn
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.DepositAmount", "Deposit amount");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ProceedPayment", "Proceed payment");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.TransactionAmount", "Transaction amount");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.TransactionCurrencyCode", "Currency");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.TransactionID", "ID");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.TransactionTime", "Time");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.PaymentStatus", "Status");
+//            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.CreatedOn
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.PaymentPending",
+                "Your payment is awaiting for administrator's approval");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.PaymentPaid", "Your payment is accepted");
+            // {0} - source currency code
+            // {1} - target currency code
+            // {2} - deposit amount in source currency
+            // {3} - deposit amount in target currency
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ChangeCurrency", "Change deposit currency");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ChangeCurrencyConfirm",
+                "You are abount to change your deposit currency from {0} to {1}.<br />"+
+                "Now you have {2} {0}.<br />"+
+                "After conversion you will have {3} {1} on you deposit.<br />"+
+                "Are you sure you want to perform this conversion?");
+//            this.AddOrUpdatePluginLocaleResource("Admin.Common.Approve", "App"
+//            this.AddOrUpdatePluginLocaleResource("Admin.Common.Reject"
 
             //TODO: Set up widget setting so it's immediately active
             base.Install();
@@ -60,9 +80,19 @@ namespace Nop.Plugin.Payments.Deposit
         public override void Uninstall()
         {
             //locales
-            this.DeletePluginLocaleResource("Payment.Deposit.AccountNavigationDeposit");
             this.DeletePluginLocaleResource("Payment.Deposit.CustomerDeposit");
             this.DeletePluginLocaleResource("Payment.Deposit.Charge");
+            this.DeletePluginLocaleResource("Payment.Deposit.DepositAmount");
+            this.DeletePluginLocaleResource("Payment.Deposit.ProceedPayment");
+            this.DeletePluginLocaleResource("Payment.Deposit.TransactionAmount");
+            this.DeletePluginLocaleResource("Payment.Deposit.TransactionCurrencyCode");
+            this.DeletePluginLocaleResource("Payment.Deposit.TransactionID");
+            this.DeletePluginLocaleResource("Payment.Deposit.TransactionTime");
+            this.DeletePluginLocaleResource("Payment.Deposit.PaymentStatus");
+            this.DeletePluginLocaleResource("Payment.Deposit.PaymentPending");
+            this.DeletePluginLocaleResource("Payment.Deposit.PaymentPaid");
+            this.DeletePluginLocaleResource("Payment.Deposit.ChangeCurrency");
+            this.DeletePluginLocaleResource("Payment.Deposit.ChangeCurrencyConfirm");
 
             base.Uninstall();
         }
@@ -102,7 +132,10 @@ namespace Nop.Plugin.Payments.Deposit
 
         public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            this._workContext.CurrentCustomer.SubtractDeposit(processPaymentRequest.OrderTotal);
+            var customerDepositCurrencyCode = this._workContext.CurrentCustomer.GetDepositCurrency();
+            var customerDepositCurrency = this._currencyService.GetCurrencyByCode(customerDepositCurrencyCode);
+            this._workContext.CurrentCustomer.SubtractDeposit(this._currencyService.ConvertFromPrimaryStoreCurrency(
+                processPaymentRequest.OrderTotal, customerDepositCurrency));
             var result = new ProcessPaymentResult
             {
                 NewPaymentStatus = PaymentStatus.Paid

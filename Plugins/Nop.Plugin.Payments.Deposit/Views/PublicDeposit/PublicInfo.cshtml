@@ -1,7 +1,16 @@
 ﻿@model Nop.Plugin.Payments.Deposit.Models.PublicDepositModel
+@using System.Security.Policy
 @using Nop.Web.Framework
 @using Nop.Web.Framework.UI
 @{
+    const string kendoVersion = "2017.1.118";
+    // CSS
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.rtl.min.css", kendoVersion));
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.default.min.css", kendoVersion));
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.common.min.css", kendoVersion));
+    // Scripts
+    Html.AppendScriptParts(string.Format("~/Administration/Scripts/kendo/{0}/kendo.web.min.js", kendoVersion));
+
     Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
 
     //title
@@ -21,10 +30,46 @@
     <div class="page-body">
         @Html.LabelFor(model => model.DepositAmount, new { }, ":")
         @Html.DisplayTextFor(model => model.DepositAmount)
+        @Html.DisplayTextFor(model => model.DepositCurrencyCode)
         <div class="buttons">
-          <a href="@Url.RouteUrl("Plugin.Payments.Deposit.Charge")" class="active button-1">
-            @T("Payment.Deposit.Charge")
-          </a>
+            <a href="@Url.RouteUrl("Plugin.Payments.Deposit.Charge")" class="active button-1">
+                @T("Payment.Deposit.Charge")
+            </a>
+            <a href="#" class="button-1 change-currency-button">
+                @T("Payment.Deposit.ChangeCurrency")
+            </a>
         </div>
     </div>
 </div>
+
+<script id="dialog-confirmation" type="text/x-kendo-template">
+    <p class="delete-message">@Html.DisplayTextFor(model => model.ChangeCurrencyConfirmationMessage)</p>
+
+    <a href="@Url.Action("ChangeCurrency", "PublicDeposit")" class="button-confirm k-button">Yes</button>
+    <a href="#" class="button-cancel">No</a>
+</script>
+<script>
+    $(".change-currency-button").click(function(e) {
+        e.preventDefault();
+        var kendoWindow = $("<div />").kendoWindow({
+            title: "@T("Common.Confirm")",
+            resizable: false,
+            modal: true
+        });
+
+        kendoWindow.data("kendoWindow")
+            .content($("#dialog-confirmation").html())
+            .center().open();
+
+        kendoWindow
+            .find(".button-confirm,.button-cancel")
+            .click(function() {
+                if ($(this).hasClass("button-confirm")) {
+                    @* Here I can put some code for confirmation *@
+                }
+
+                kendoWindow.data("kendoWindow").close();
+            })
+            .end();
+    });
+</script>

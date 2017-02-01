@@ -10,6 +10,7 @@ namespace Nop.Plugin.Payments.Deposit.Domain
         public virtual int CustomerId { get; set; }
         public virtual string PaymentMethodSystemName { get; set; }
         public virtual decimal TransactionAmount { get; set; }
+        public virtual string TransactionCurrencyCode { get; set; }
         public virtual DateTime TransactionTime { get; set; }
         public virtual PaymentStatus Status { get; set; }
         public virtual int AddedBy { get; set; }

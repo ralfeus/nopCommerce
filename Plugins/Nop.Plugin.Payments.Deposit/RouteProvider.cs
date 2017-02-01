@@ -1,6 +1,5 @@
 ﻿using System.Web.Mvc;
 using System.Web.Routing;
-using Nop.Plugin.Payments.Deposit.ViewEngines;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.Payments.Deposit
@@ -17,7 +16,15 @@ namespace Nop.Plugin.Payments.Deposit
             route.DataTokens.Add("area", "admin");
             routes.Remove(route);
             routes.Insert(0, route);
+
 //            System.Web.Mvc.ViewEngines.Engines.Insert(0, new CustomViewEngine());
+
+            routes.MapRoute("Plugin.Payments.Deposit.ChangeCurrency",
+                "customer/deposit/changeCurrency",
+                new { controller = "PublicDeposit", action = "ChangeCurrency" },
+                new[] { "Nop.Plugin.Payments.Deposit.Controllers" }
+            );
+
             routes.MapRoute("Plugin.Payments.Deposit.CustomerDeposit",
                 "customer/deposit",
                 new { controller = "PublicDeposit", action = "PublicInfo" },

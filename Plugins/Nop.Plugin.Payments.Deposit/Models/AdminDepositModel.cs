@@ -11,7 +11,8 @@ namespace Nop.Plugin.Payments.Deposit.Models
         public IList<PaymentStatus> AvailableStatuses => new List<PaymentStatus>
         {
             PaymentStatus.Pending,
-            PaymentStatus.Paid
+            PaymentStatus.Paid,
+            PaymentStatus.Voided
         };
         public IList<Customer> Customers { get; set; }
         public IList<DepositTransactionModel> Transactions { get; set; }

@@ -40,12 +40,16 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web" />
@@ -80,8 +84,18 @@
     <Compile Include="DepositPaymentSettings.cs" />
     <Compile Include="Domain\DepositTransaction.cs" />
     <Compile Include="Extensions\CustomerExtensions.cs" />
+    <Compile Include="Migrations\201701302205471_Initial.cs" />
+    <Compile Include="Migrations\201701302205471_Initial.Designer.cs">
+      <DependentUpon>201701302205471_Initial.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201701302207338_AddTransactionCurrency.cs" />
+    <Compile Include="Migrations\201701302207338_AddTransactionCurrency.Designer.cs">
+      <DependentUpon>201701302207338_AddTransactionCurrency.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AdminDepositModel.cs" />
     <Compile Include="Models\ChargeModel.cs" />
+    <Compile Include="Models\ChargeProceedModel.cs" />
     <Compile Include="Models\ConfigurationModel.cs" />
     <Compile Include="Models\DepositTransactionModel.cs" />
     <Compile Include="Models\PaymentInfoModel.cs" />
@@ -90,7 +104,6 @@
     <Compile Include="RouteProvider.cs" />
     <Compile Include="Services\DepositTransactionService.cs" />
     <Compile Include="Services\IDepositTransactionService.cs" />
-    <Compile Include="ViewEngines\CustomViewEngine.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Description.txt">
@@ -110,6 +123,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Views\PublicDeposit\Charge.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\PublicDeposit\ChargeProceed.cshtml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Views\PublicDeposit\PublicInfo.cshtml">
@@ -154,6 +170,17 @@
       <Name>Nop.Web</Name>
       <Private>False</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\201701302205471_Initial.resx">
+      <DependentUpon>201701302205471_Initial.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201701302207338_AddTransactionCurrency.resx">
+      <DependentUpon>201701302207338_AddTransactionCurrency.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

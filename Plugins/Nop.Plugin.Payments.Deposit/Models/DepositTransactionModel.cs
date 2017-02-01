@@ -16,5 +16,6 @@ namespace Nop.Plugin.Payments.Deposit.Models
         public int StatusId { get; set; }
         public int AddedBy { get; set; }
         public string NewBalance { get; set; }
+        public string TransactionCurrencyCode { get; set; }
     }
 }

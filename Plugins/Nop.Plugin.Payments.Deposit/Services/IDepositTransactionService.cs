@@ -5,8 +5,10 @@ namespace Nop.Plugin.Payments.Deposit.Services
 {
     public interface IDepositTransactionService
     {
-        void AddTransaction(DepositTransaction transaction);
-        void VoidTransaction(int transactionId);
+        int AddTransaction(DepositTransaction transaction);
+        DepositTransaction GetTransactionById(int transactionId);
         IList<DepositTransaction> GetTransactions();
+        void SetTransaction(DepositTransaction transaction);
+        void VoidTransaction(int transactionId);
     }
 }

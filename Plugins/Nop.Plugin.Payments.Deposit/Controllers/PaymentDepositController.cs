@@ -101,25 +101,29 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
         public ActionResult PaymentInfo()
         {
             var depositPaymentSettings = _settingService.LoadSetting<DepositPaymentSettings>();
-            var cart = _workContext.CurrentCustomer.ShoppingCartItems
+            var customer = this._workContext.CurrentCustomer;
+            var customerDepositCurrency = this._currencyService.GetCurrencyByCode(customer.GetDepositCurrency());
+            var cart = customer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
                 .LimitPerStore(_storeContext.CurrentStore.Id)
                 .ToList();
             var orderTotal = this._orderTotalCalculationService.GetShoppingCartTotal(cart);
             var orderShippingTotal = this._orderTotalCalculationService.GetShoppingCartShippingTotal(cart);
             var total = orderTotal ?? 0 + orderShippingTotal ?? 0;
+            var totalWorkingCurrency =
+                this._currencyService.ConvertFromPrimaryStoreCurrency(total, this._workContext.WorkingCurrency);
+            var totalCustomerDepositCurrency =
+                this._currencyService.ConvertFromPrimaryStoreCurrency(total, customerDepositCurrency);
             var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
             //var balance = this._workContext.CurrentCustomer.GetAttribute<decimal>("Deposit", genericAttributeService);
             var model = new PaymentInfoModel
             {
                 DescriptionText = depositPaymentSettings.GetLocalizedSetting(x => x.DescriptionText, _workContext.WorkingLanguage.Id),
-                CurrentDepositAmount = this._priceFormatter.FormatPrice(
-                    this._currencyService.ConvertFromPrimaryStoreCurrency(
-                        this._workContext.CurrentCustomer.GetAttribute<decimal>("Deposit", genericAttributeService), this._workContext.WorkingCurrency)),
+                CurrentDepositAmount = this._priceFormatter.FormatPrice(customer.GetDepositBalance(), true, customerDepositCurrency),
                 FutureDepositAmount = this._priceFormatter.FormatPrice(
-                    this._currencyService.ConvertFromPrimaryStoreCurrency(
-                        this._workContext.CurrentCustomer.GetAttribute<decimal>("Deposit", genericAttributeService) - total, this._workContext.WorkingCurrency)),
-                OrderTotal = this._priceFormatter.FormatPrice(total)
+                    customer.GetDepositBalance() - totalCustomerDepositCurrency, true, customerDepositCurrency),
+                OrderTotal =
+                    $"{this._priceFormatter.FormatPrice(totalWorkingCurrency)} ({this._priceFormatter.FormatPrice(totalCustomerDepositCurrency, true, customerDepositCurrency)})"
             };
             return View("~/Plugins/Payments.Deposit/Views/PaymentDeposit/PaymentInfo.cshtml", model);
         }

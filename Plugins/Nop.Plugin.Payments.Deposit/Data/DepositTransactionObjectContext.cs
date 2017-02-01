@@ -10,6 +10,8 @@ namespace Nop.Plugin.Payments.Deposit.Data
     {
         public DepositTransactionObjectContext(string nameOrConnectionString) : base(nameOrConnectionString) { }
 
+        public DepositTransactionObjectContext() : base ("Data Source=localhost;Initial Catalog=nopCommerce;Integrated Security=True;Persist Security Info=False") { }
+
         public IList<TEntity> ExecuteStoredProcedureList<TEntity>(string commandText, params object[] parameters) where TEntity : BaseEntity, new()
         {
             throw new System.NotImplementedException();

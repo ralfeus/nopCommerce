@@ -8,5 +8,9 @@ namespace Nop.Plugin.Payments.Deposit.Models
         [NopResourceDisplayName("Payment.Deposit.DepositAmount")]
         [AllowHtml]
         public string DepositAmount { get; set; }
+        [AllowHtml]
+        public string DepositCurrencyCode { get; set; }
+        [AllowHtml]
+        public string ChangeCurrencyConfirmationMessage { get; set; }
     }
 }

@@ -1,9 +1,11 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Web.Mvc;
 using Nop.Admin.Controllers;
 using Nop.Core;
 using Nop.Core.Domain.Payments;
 using Nop.Plugin.Payments.Deposit.Domain;
+using Nop.Plugin.Payments.Deposit.Extensions;
 using Nop.Plugin.Payments.Deposit.Models;
 using Nop.Plugin.Payments.Deposit.Services;
 using Nop.Services.Catalog;
@@ -74,6 +76,7 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
             {
                 Data = this._depositTransactionService.GetTransactions().Select(dt => new DepositTransactionModel
                 {
+                    Id = dt.Id,
                     CustomerId = dt.CustomerId,
                     CustomerName =  this._customerService.GetCustomerById(dt.CustomerId).GetFullName(),
 //                    PaymentMethodName = this._paymentService
@@ -81,10 +84,11 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
 //                        .FirstOrDefault(pm => pm.PluginDescriptor.SystemName == dt.PaymentMethodSystemName)
 //                        .GetLocalizedFriendlyName(this._localizationService, _workContext.WorkingLanguage.Id),
                     TransactionAmount =  dt.TransactionAmount,
+                    TransactionCurrencyCode = dt.TransactionCurrencyCode,
                     TransactionTime = dt.TransactionTime,
                     StatusId = (int)dt.Status,
                     NewBalance = this._priceFormatter.FormatPrice(dt.NewBalance)
-                })
+                }).OrderByDescending(dt => dt.Id)
             };
             return new JsonResult
             {
@@ -107,11 +111,48 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
                 PaymentMethodSystemName = model.PaymentMethodName,
                 Status = (PaymentStatus)model.StatusId,
                 TransactionAmount = model.TransactionAmount,
+                TransactionCurrencyCode = this._customerService.GetCustomerById(model.CustomerId).GetDepositCurrency(),
                 TransactionTime = model.TransactionTime
             };
             this._depositTransactionService.AddTransaction(transaction);
 
             return new NullJsonResult();
+        }
+
+        public ActionResult SetTransactionStatus(DepositTransactionModel model)
+        {
+            try
+            {
+                var transaction = this._depositTransactionService.GetTransactionById(model.Id);
+                transaction.Status = (PaymentStatus) model.StatusId;
+                this._depositTransactionService.SetTransaction(transaction);
+                return new NullJsonResult();
+            }
+            catch (Exception)
+            {
+                return Json(new {error = "Wrong arguments"});
+            }
+        }
+
+        public ActionResult UpdateDeposit(DepositTransactionModel model)
+        {
+            if (!ModelState.IsValid) return new NullJsonResult();
+
+            try
+            {
+                var transaction = new DepositTransaction
+                {
+                    Id = model.Id,
+                    Status = (PaymentStatus) model.StatusId
+                };
+
+                this._depositTransactionService.SetTransaction(transaction);
+                return new NullJsonResult();
+            }
+            catch (Exception)
+            {
+                return Json(new {error = "Wrong arguments"});
+            }
         }
     }
 }

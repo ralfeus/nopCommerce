@@ -1,4 +1,7 @@
-﻿using Nop.Core.Domain.Customers;
+﻿using System;
+using System.Linq;
+using Nop.Core;
+using Nop.Core.Domain.Customers;
 using Nop.Core.Infrastructure;
 using Nop.Services.Common;
 
@@ -15,6 +18,12 @@ namespace Nop.Plugin.Payments.Deposit.Extensions
         {
             var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
             var deposit = customer.GetAttribute<decimal>("Deposit", genericAttributeService);
+            var currency = customer.GetAttribute<string>("DepositCurrency", genericAttributeService);
+            if (currency == null)
+            {
+                var workContext = EngineContext.Current.Resolve<IWorkContext>();
+                SetDepositCurrency(customer, workContext.WorkingCurrency.CurrencyCode);
+            }
             genericAttributeService.SaveAttribute(customer, "Deposit", deposit + amount);
         }
 
@@ -39,6 +48,19 @@ namespace Nop.Plugin.Payments.Deposit.Extensions
         {
             var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
             return customer.GetAttribute<decimal>("Deposit", genericAttributeService);
+        }
+
+        public static string GetDepositCurrency(this Customer customer)
+        {
+            var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
+            return customer.GetAttribute<string>("DepositCurrency", genericAttributeService) ??
+                   EngineContext.Current.Resolve<IWorkContext>().WorkingCurrency.CurrencyCode;
+        }
+
+        public static void SetDepositCurrency(this Customer customer, string depositCurrencyCode)
+        {
+            var genericAttributeService = EngineContext.Current.Resolve<IGenericAttributeService>();
+            genericAttributeService.SaveAttribute(customer, "DepositCurrency", depositCurrencyCode);
         }
     }
 }

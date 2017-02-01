@@ -1,0 +1,28 @@
+﻿@model Nop.Plugin.Payments.Deposit.Models.ChargeModel
+@using Nop.Core.Domain.Payments
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@{
+    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+
+    //title
+    Html.AddTitleParts(T("PageTitle.Account").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-account-page");
+    Html.AppendPageCssClassParts("html-customer-info-page");
+}
+@section left
+{
+    @Html.Action("CustomerNavigation", "Customer")
+}
+<div class="page account-page">
+    <div class="page-body">
+        @if (Model.Status == PaymentStatus.Pending)
+        {
+            @T("Payment.Deposit.PaymentPending")
+        } else if (Model.Status == PaymentStatus.Paid)
+        {
+            @T("Payment.Deposit.PaymentPaid")
+        }
+    </div>
+</div>
