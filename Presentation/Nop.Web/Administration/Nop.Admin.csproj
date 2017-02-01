@@ -1540,7 +1540,9 @@
     <Content Include="Views\Shared\Delete.cshtml" />
     <Content Include="Views\Shared\EditorTemplates\Picture.cshtml" />
     <Content Include="Views\Shared\Menu.cshtml" />
-    <Content Include="Views\Shared\_AdminLayout.cshtml" />
+    <Content Include="Views\Shared\_AdminLayout.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Views\Web.config">
       <SubType>Designer</SubType>
     </Content>
