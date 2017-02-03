@@ -28,9 +28,13 @@
         <h1>@T("Payment.Deposit.CustomerDeposit")</h1>
     </div>
     <div class="page-body">
-        @Html.LabelFor(model => model.DepositAmount, new { }, ":")
-        @Html.DisplayTextFor(model => model.DepositAmount)
-        @Html.DisplayTextFor(model => model.DepositCurrencyCode)
+        <div class="fieldset">
+            <div class="info>"
+                 @Html.LabelFor(model => model.DepositAmount, new {}, ":")
+                 @Html.DisplayTextFor(model => model.DepositAmount)
+                 @Html.DisplayTextFor(model => model.DepositCurrencyCode)
+            </div>
+        </div>
         <div class="buttons">
             <a href="@Url.RouteUrl("Plugin.Payments.Deposit.Charge")" class="active button-1">
                 @T("Payment.Deposit.Charge")

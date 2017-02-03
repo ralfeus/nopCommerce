@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="Controllers\AdminDepositController.cs" />
     <Compile Include="Controllers\PaymentDepositController.cs" />
+    <Compile Include="Controllers\PayPalGenericHandlerController.cs" />
     <Compile Include="Controllers\PublicDepositController.cs" />
     <Compile Include="Data\DeposistTransactionMap.cs" />
     <Compile Include="Data\DepositTransactionObjectContext.cs" />
@@ -169,6 +170,10 @@
       <Project>{4f1f649c-1020-45be-a487-f416d9297ff3}</Project>
       <Name>Nop.Web</Name>
       <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\Nop.Plugin.Payments.PayPalStandard\Nop.Plugin.Payments.PayPalStandard.csproj">
+      <Project>{5979DBFD-8471-4DF5-A0FD-96F6768205AA}</Project>
+      <Name>Nop.Plugin.Payments.PayPalStandard</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

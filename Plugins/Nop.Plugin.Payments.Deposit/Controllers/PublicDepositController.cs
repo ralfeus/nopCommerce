@@ -8,6 +8,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
+using Nop.Core.Domain.Shipping;
 using Nop.Core.Plugins;
 using Nop.Plugin.Payments.Deposit.Domain;
 using Nop.Plugin.Payments.Deposit.Extensions;
@@ -220,11 +221,18 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
                 {
                     Order = new Order
                     {
+                        Id = 1000000000 + transaction.Id,
+                        // 1 means deposit charge
+                        OrderGuid = new Guid(transaction.Id, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                         CreatedOnUtc = DateTime.UtcNow,
                         Customer = this._workContext.CurrentCustomer,
-                        OrderTotal = model.ChargeAmount,
+                        OrderTotal = this._currencyService.ConvertToPrimaryStoreCurrency(
+                            model.ChargeAmount, this._currencyService.GetCurrencyByCode(transaction.TransactionCurrencyCode)),
+                        CustomerCurrencyCode = transaction.TransactionCurrencyCode,
                         PaymentMethodSystemName = model.PaymentMethod,
-                        PaymentStatus = PaymentStatus.Pending
+                        PaymentStatus = PaymentStatus.Pending,
+                        ShippingStatus = ShippingStatus.ShippingNotRequired,
+                        BillingAddress = this._workContext.CurrentCustomer.BillingAddress
                     }
                 };
 
@@ -243,6 +251,22 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
                 this._logger.Warning(exc.Message, exc, _workContext.CurrentCustomer);
                 return Content(exc.Message);
             }
+        }
+
+        public ActionResult ChargeComplete(int transactionId)
+        {
+            if (!_workContext.CurrentCustomer.IsRegistered())
+                return new HttpUnauthorizedResult();
+
+            var transaction = this._depositTransactionService.GetTransactionById(transactionId);
+            if (transaction.Status == PaymentStatus.Paid)
+            {
+                SuccessNotification(_localizationService.GetResource("Payment.Deposit.Charge.Success"));
+            } else if (transaction.Status == PaymentStatus.Voided)
+            {
+                ErrorNotification(_localizationService.GetResource("Payment.Deposit.Charge.Failure"));
+            }
+            return RedirectToAction("PublicInfo");
         }
 
         public ActionResult ChangeCurrency()

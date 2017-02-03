@@ -42,8 +42,23 @@ namespace Nop.Plugin.Payments.Deposit
                 new {controller = "PublicDeposit", action = "ProceedPayment"},
                 new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
             );
+
+            //PDT
+            routes.MapRoute("Plugin.Payments.Deposit.PDTHandler",
+                "Plugins/PaymentPayPalStandard/PDTHandler",
+                new { controller = "PayPalGenericHandler", action = "PdtHandler" },
+                new[] { "Nop.Plugin.Payments.Deposit.Controllers" }
+            );
+
+            routes.MapRoute("Plugin.Payments.Deposit.ChargeComplete",
+                "customer/deposit/charge/complete/{transactionId}",
+                new { controller = "PublicDeposit", action = "ChargeComplete", transactionId = UrlParameter.Optional },
+                new { transactionId = @"\d+" },
+                new[] { "Nop.Plugin.Payments.Deposit.Controllers" });
+
+
         }
 
-        public int Priority => 1;
+        public int Priority => 10;
     }
 }
