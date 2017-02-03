@@ -105,8 +105,8 @@ namespace Nop.Plugin.Payments.Deposit
             {
                 SystemName = "Payments.Deposit",
                 Title = "Deposit",
-                ControllerName = "AdminDeposit",
-                ActionName = "List",
+//                ControllerName = "AdminDeposit",
+//                ActionName = "List",
                 Visible = true,
                 Url = "admin/deposit",
                 RouteValues = new RouteValueDictionary() { { "area", null } },
