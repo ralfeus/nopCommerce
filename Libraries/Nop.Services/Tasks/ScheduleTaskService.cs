@@ -67,7 +67,7 @@ namespace Nop.Services.Tasks
             query = query.Where(st => st.Type == type);
             query = query.OrderByDescending(t => t.Id);
 
-            var task = query.FirstOrDefault();
+           var task = query.FirstOrDefault();
             return task;
         }
 

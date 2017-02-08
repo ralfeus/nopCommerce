@@ -1684,7 +1684,7 @@ namespace Nop.Web.Controllers
                 ParseRentalDates(product, form, out rentalStartDate, out rentalEndDate);
             }
 
-            var cartType = updatecartitem == null ? (ShoppingCartType)shoppingCartTypeId :
+           var cartType = updatecartitem == null ? (ShoppingCartType)shoppingCartTypeId :
                 //if the item to update is found, then we ignore the specified "shoppingCartTypeId" parameter
                 updatecartitem.ShoppingCartType;
 

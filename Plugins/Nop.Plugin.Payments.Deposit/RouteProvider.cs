@@ -1,5 +1,6 @@
 ﻿using System.Web.Mvc;
 using System.Web.Routing;
+using Nop.Plugin.Payments.Deposit.Controllers;
 using Nop.Web.Framework.Mvc.Routes;
 
 namespace Nop.Plugin.Payments.Deposit
@@ -8,40 +9,40 @@ namespace Nop.Plugin.Payments.Deposit
     {
         public void RegisterRoutes(RouteCollection routes)
         {
-            var route = routes.MapRoute("Plugin.Payments.Deposit.Admin.List",
-                "admin/deposit",
-                new {controller = "AdminDeposit", action = "List", area = "Admin"},
-                new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
+            var route = routes.MapRoute(
+                name: "Plugin.Payments.Deposit.Admin.Default",
+                url: "Admin/AdminDeposit/{action}/{id}",
+                defaults: new { controller = "AdminDeposit", action = "List", id = UrlParameter.Optional , area = "Admin"},
+                namespaces: new[] {$"{typeof(AdminDepositController).Namespace}.Controllers"}
             );
             route.DataTokens.Add("area", "admin");
             routes.Remove(route);
             routes.Insert(0, route);
 
-//            System.Web.Mvc.ViewEngines.Engines.Insert(0, new CustomViewEngine());
-
-            routes.MapRoute("Plugin.Payments.Deposit.ChangeCurrency",
-                "customer/deposit/changeCurrency",
-                new { controller = "PublicDeposit", action = "ChangeCurrency" },
-                new[] { "Nop.Plugin.Payments.Deposit.Controllers" }
+            routes.MapRoute(
+                name: "Plugin.Payments.Deposit.ChangeCurrency",
+                url: "customer/deposit/{action}/{id}",
+                defaults: new { controller = "PublicDeposit", action = "PublicInfo", id = UrlParameter.Optional },
+                namespaces: new[] { $"{typeof(PublicDepositController).Namespace}.Controllers" }
             );
 
-            routes.MapRoute("Plugin.Payments.Deposit.CustomerDeposit",
-                "customer/deposit",
-                new { controller = "PublicDeposit", action = "PublicInfo" },
-                new[] { "Nop.Plugin.Payments.Deposit.Controllers" }
-            );
-
-            routes.MapRoute("Plugin.Payments.Deposit.Charge",
-                "customer/deposit/charge/selectMethod",
-                new {controller = "PublicDeposit", action = "Charge"},
-                new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
-            );
-
-            routes.MapRoute("Plugin.Payments.Deposit.ProceedChargePayment",
-                "customer/deposit/charge/proceed",
-                new {controller = "PublicDeposit", action = "ProceedPayment"},
-                new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
-            );
+//            routes.MapRoute("Plugin.Payments.Deposit.CustomerDeposit",
+//                "customer/deposit",
+//                new { controller = "PublicDeposit", action = "PublicInfo" },
+//                new[] { "Nop.Plugin.Payments.Deposit.Controllers" }
+//            );
+//
+//            routes.MapRoute("Plugin.Payments.Deposit.Charge",
+//                "customer/deposit/charge/selectMethod",
+//                new {controller = "PublicDeposit", action = "Charge"},
+//                new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
+//            );
+//
+//            routes.MapRoute("Plugin.Payments.Deposit.ProceedChargePayment",
+//                "customer/deposit/charge/proceed",
+//                new {controller = "PublicDeposit", action = "ProceedPayment"},
+//                new[] {"Nop.Plugin.Payments.Deposit.Controllers"}
+//            );
 
             //PDT
             routes.MapRoute("Plugin.Payments.Deposit.PDTHandler",

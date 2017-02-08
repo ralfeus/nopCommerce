@@ -26,3 +26,4 @@ ima9ines.Nop
 ima9ines.Nop.NewProducts
 CurrencyExchange.ECB
 Payments.Deposit
+Ralfeus.Agent

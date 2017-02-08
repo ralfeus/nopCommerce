@@ -108,7 +108,7 @@ namespace Nop.Plugin.Payments.Deposit
 //                ControllerName = "AdminDeposit",
 //                ActionName = "List",
                 Visible = true,
-                Url = "admin/deposit",
+                Url = "/admin/admindeposit",
                 RouteValues = new RouteValueDictionary() { { "area", null } },
             };
             var pluginNode = rootNode.ChildNodes.FirstOrDefault(x => x.SystemName == "Third party plugins");

@@ -29,27 +29,27 @@
     </div>
     <div class="page-body">
         <div class="fieldset">
-            <div class="info>"
-                 @Html.LabelFor(model => model.DepositAmount, new {}, ":")
-                 @Html.DisplayTextFor(model => model.DepositAmount)
-                 @Html.DisplayTextFor(model => model.DepositCurrencyCode)
+            <div class="info">
+                @Html.LabelFor(model => model.DepositAmount, new {}, ":")
+                @Html.DisplayTextFor(model => model.DepositAmount)
+                @Html.DisplayTextFor(model => model.DepositCurrencyCode)
             </div>
         </div>
+    </div>
         <div class="buttons">
-            <a href="@Url.RouteUrl("Plugin.Payments.Deposit.Charge")" class="active button-1">
+            <a href="@Url.Action("Charge")" class="active button-1">
                 @T("Payment.Deposit.Charge")
             </a>
             <a href="#" class="button-1 change-currency-button">
                 @T("Payment.Deposit.ChangeCurrency")
             </a>
         </div>
-    </div>
 </div>
 
 <script id="dialog-confirmation" type="text/x-kendo-template">
     <p class="delete-message">@Html.DisplayTextFor(model => model.ChangeCurrencyConfirmationMessage)</p>
 
-    <a href="@Url.Action("ChangeCurrency", "PublicDeposit")" class="button-confirm k-button">Yes</button>
+    <a href="@Url.Action("ChangeCurrency")" class="button-confirm k-button">Yes</button>
     <a href="#" class="button-cancel">No</a>
 </script>
 <script>

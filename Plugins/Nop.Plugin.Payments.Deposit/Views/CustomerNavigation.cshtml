@@ -14,7 +14,7 @@
                     <a href="@Url.RouteUrl(item.RouteName)" class="@(Model.SelectedTab == item.Tab ? "active" : "inactive")">@(item.Title)</a>
                 </li>
             }
-            <li><a href="@Url.RouteUrl("Plugin.Payments.Deposit.CustomerDeposit")" class="active">@T("Account.Deposit")</a></li>
+            <li><a href="@Url.Action("PublicInfo", "PublicDeposit")" class="active">@T("Account.Deposit")</a></li>
             @Html.Widget("account_navigation_after")
         </ul>
     </div>
