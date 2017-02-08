@@ -1,0 +1,9 @@
+Group: Miscellenious
+FriendlyName: External Order Agent
+SystemName: Ralfeus.Agent
+Version: 0.1
+SupportedVersions: 3.80
+Author: Mykhaylo Khodorev (ralfeus@gmail.com)
+DisplayOrder: 1
+FileName: Nop.Plugin.Ralfeus.Agent.dll
+Description: This plugin provides functionality of ordering goods from another sites. Useful when customer can't directly order and uses your store as a proxy.

@@ -1,0 +1,94 @@
+@using System.Web.Mvc.Html
+@using Nop.Core
+@using Nop.Core.Domain.Orders
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
+@model Nop.Plugin.Ralfeus.Agent.Models.AgentOrderModel
+@{
+    const string kendoVersion = "2017.1.118";
+    // CSS
+//    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.rtl.min.css", kendoVersion));
+//    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.default.min.css", kendoVersion));
+//    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.common.min.css", kendoVersion));
+//    // Scripts
+//    Html.AppendScriptParts(string.Format("~/Administration/Scripts/kendo/{0}/kendo.web.min.js", kendoVersion));
+
+    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+
+    //title
+    Html.AddTitleParts(T("Ralfeus.Agent.NewOrder").Text);
+}
+<div class="page">
+<div class="page-title">
+    <h1>@T("Ralfeus.Agent.NewOrder")</h1>
+</div>
+<div class="page-body">
+@using (Html.BeginForm("AddToCart", "PublicAgent", FormMethod.Post, new {id = "agent-order-form"}))
+{
+    @Html.AntiForgeryToken()
+    var validationSummary = Html.ValidationSummary(true);
+    if (!MvcHtmlString.IsNullOrEmpty(validationSummary))
+    {
+        <div class="message-error">@validationSummary</div>
+    }
+    <div class="fieldset">
+        <div class="title">
+            <strong>@T("Account.YourPersonalDetails")</strong>
+        </div>
+        <div class="form-fields">
+            <div class="inputs">
+                @Html.LabelFor(model => model.ProductUrl, new { }, ":")
+                @Html.EditorFor(model => model.ProductUrl)
+                @Html.RequiredHint()
+                @Html.ValidationMessageFor(model => model.ProductUrl)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.ImagePath, new { }, ":")
+                @Html.EditorFor(model => model.ImagePath)
+                @Html.ValidationMessageFor(model => model.ImagePath)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.ItemName, new { }, ":")
+                @Html.EditorFor(model => model.ItemName)
+                @Html.ValidationMessageFor(model => model.ItemName)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.SourceShopName, new { }, ":")
+                @Html.EditorFor(model => model.SourceShopName)
+                @Html.ValidationMessageFor(model => model.SourceShopName)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.Color, new { }, ":")
+                @Html.EditorFor(model => model.Color)
+                @Html.ValidationMessageFor(model => model.Color)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.Size, new { }, ":")
+                @Html.EditorFor(model => model.Size)
+                @Html.ValidationMessageFor(model => model.Size)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.Quantity, new { }, ":")
+                @Html.EditorFor(model => model.Quantity)
+                @Html.ValidationMessageFor(model => model.Quantity)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.ApproxPrice, new { }, ":")
+                @Html.EditorFor(model => model.ApproxPrice)
+                @Html.ValidationMessageFor(model => model.ApproxPrice)
+            </div>
+            <div class="inputs">
+                @Html.LabelFor(model => model.Comment, new { }, ":")
+                @Html.EditorFor(model => model.Comment)
+                @Html.ValidationMessageFor(model => model.Comment)
+            </div>
+        </div>
+    </div>
+    <div class="buttons">
+        <input type="button" id="add-to-cart-button" class="button-1 add-to-cart-button" value="@T("ShoppingCart.AddToCart")"
+           onclick="AjaxCart.addproducttocart_details('@Url.RouteUrl("Ralfeus.Agent.AddOrderToCart")', '#agent-order-form');return false;"
+        />
+    </div>
+}
+</div>
+</div>
