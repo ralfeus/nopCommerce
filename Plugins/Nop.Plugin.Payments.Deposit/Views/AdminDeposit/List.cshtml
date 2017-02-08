@@ -40,6 +40,12 @@
                             dataType: "json",
                             data: addAntiForgeryToken
                         },
+                        update: {
+                            url: "@Html.Raw(Url.Action("UpdateDeposit", "AdminDeposit"))",
+                            type: "POST",
+                            dataType: "json",
+                            data: addAntiForgeryToken
+                        },
                         parameterMap: function(data, operation) {
                             if (operation === "update" || operation === "create") {
                                 data.TransactionTime = data.TransactionTime.toUTCString();
@@ -57,20 +63,23 @@
                                 Id: {editable: false, type: "number"},
                                 CustomerId: {type: "number"},
                                 CustomerName: {type: "string"},
-                                StatusId: {type: "number"},
+                                StatusId: {type: "number", field: "StatusId"},
                                 TransactionAmount: {type: "number"},
+                                TransactionCurrencyCode: {editable: false, type: "string"},
                                 TransactionTime: {type: "date"},
                                 NewBalance: {editable: false, type: "string"}
                             }
                         }
                     },
                     requestEnd: function(e) {
-                        if (e.type == "read") {
+                        if (e.type === "read") {
                             var response = e.response;
                             if (response) {
                                 //store extra data
                                 reportAggregates = e.response["ExtraData"];
                             }
+                        } else if (e.type === "update" || e.type === "create") {
+                            this.read();
                         }
                     },
                     error: function(e) {
@@ -87,8 +96,15 @@
                     confirmation: "@T("Admin.Common.DeleteConfirmation")",
                     mode: "inline"
                 },
+                edit: function(e) {
+                    if (e.model.isNew() === false) {
+                        $("input[name=TransactionTime]").parent().parent().parent().html(e.model.TransactionTime);
+                        $("input[name=CustomerId_input]").parent().parent().parent().html(e.model.CustomerName);
+                        $("input[name=TransactionAmount]").parent().parent().parent().html(e.model.TransactionAmount);
+                    }
+                },
                 scrollable: false,
-                dataBound: onDataBound,
+//                dataBound: onDataBound,
                 columns: [
                     {
                         field: "Id",
@@ -104,10 +120,24 @@
                     },
                     {
                         field: "CustomerId",
-                        title: "@T("Admin.Common.Customer")",
-                        editor: customerColumnEditor,
+                        title: "@T("Admin.System.Log.Fields.Customer")",
+                        values: customers,
+                        editor: function (container, options) {
+                            $('<input name="' + options.field + '" />').appendTo(container).kendoComboBox({
+                                autoBind: false,
+                                suggest: true,
+                                placeholder: "Select customer's name",
+                                filter: "contains",
+                                index: 1,
+                                minLength: 1,
+                                dataSource: customers,
+                                dataTextField: "text",
+                                dataValueField: "value",
+                                value: options.model.CustomerName
+                            });
+                        },
                         width: 250,
-                        template: '#=getCustomerNameById(CustomerId)#'
+//                        template: '#=getCustomerNameById(CustomerId)#'
                     },
                     {
                         field: "TransactionAmount",
@@ -115,23 +145,26 @@
                         template: '#=TransactionAmount#'
                     },
                     {
-                        field: "StatusId",
-                        title: "@T("Payment.Deposit.PaymentStatus")",
-                        editor: paymentStatusColumnEditor,
-                        width: 150,
-                        template: '#=getStatusNameById(StatusId)#'
+                        field: "TransactionCurrencyCode",
+                        title: "@T("Payment.Deposit.TransactionCurrencyCode")"
                     },
                     {
-                        field: "NewBalance",
-                        title: "@T("Payment.Deposit.NewBalance")"
+                        field: "StatusId",
+                        title: "@T("Payment.Deposit.PaymentStatus")",
+                        values: statuses,
+//                        editor: paymentStatusColumnEditor,
+                        width: 150,
+//                        template: '#=getStatusNameById(StatusId)#'
                     },
+//                    {
+//                        field: "NewBalance",
+//                        title: "@T("Payment.Deposit.NewBalance")"
+//                    },
                     {
                         command: [
                             {
                                 name: "edit",
-                                visible: function(dataItem) {
-                                    return false;
-                                },
+                                visible: isTransactionPending,
                                 text: {
                                     edit: "@T("Admin.Common.Edit")",
                                     update: "@T("Admin.Common.Update")",
@@ -140,61 +173,35 @@
                             },
                             {
                                 name: "destroy",
+                                visible: isTransactionPending,
                                 text: "@T("Admin.Common.Delete")"
                             }
+//                            {
+//                                name: "approve",
+//                                visible: isTransactionPending,
+//                                text: "@T("Admin.Common.Approve")",
+//                                click: approveTransaction
+//                            },
+//                            {
+//                                name: "reject",
+//                                visible: isTransactionPending,
+//                                text: "@T("Admin.Common.Reject")",
+//                                click: rejectTransaction
+//                            }
                         ],
                         width: 200
                     }
                 ]
             });
         });
+        function isTransactionPending(dataItem) {
+            return dataItem.StatusId === @Convert.ToInt16(PaymentStatus.Pending);
+        }
     </script>
 
         <script type="text/javascript">
             var selectedIds = [];
             var reportAggregates = "";
-
-            $(document).ready(function() {
-                //search button
-                $('#search-orders').click(function() {
-                    //search
-                    var grid = $('#orders-grid').data('kendoGrid');
-                    grid.dataSource.page(1); //new search. Set page size to 1
-                    //grid.dataSource.read(); we already loaded the grid above using "page" function
-                    //clear selected checkboxes
-                    $('.checkboxGroups').attr('checked', false).change();
-                    selectedIds = [];
-                    return false;
-                });
-
-                $('#mastercheckbox').click(function() {
-                    $('.checkboxGroups').attr('checked', $(this).is(':checked')).change();
-                });
-
-                //wire up checkboxes.
-                $('#orders-grid').on('change',
-                    'input[type=checkbox][id!=mastercheckbox]',
-                    function(e) {
-                        var $check = $(this);
-                        if ($check.is(":checked") == true) {
-                            var checked = jQuery.inArray($check.val(), selectedIds);
-                            if (checked == -1) {
-                                //add id to selectedIds.
-                                selectedIds.push($check.val());
-                            }
-                        } else {
-                            var checked = jQuery.inArray($check.val(), selectedIds);
-                            if (checked > -1) {
-                                //remove id from selectedIds.
-                                selectedIds = $.grep(selectedIds,
-                                    function(item, index) {
-                                        return item != $check.val();
-                                    });
-                            }
-                        }
-                        updateMasterCheckbox();
-                    });
-            });
 
 //            function additionalData() {
 //               var data = {
@@ -208,33 +215,6 @@
 //               return data;
 //           }
 
-            function onDataBound(e) {
-                $('#orders-grid input[type=checkbox][id!=mastercheckbox]').each(function() {
-                    var currentId = $(this).val();
-                    var checked = jQuery.inArray(currentId, selectedIds);
-                    //set checked based on if current checkbox's value is in selectedIds.
-                    $(this).attr('checked', checked > -1);
-                });
-
-                updateMasterCheckbox();
-
-                //update order totals summary
-                if (reportAggregates != "") {
-                    for (var key in reportAggregates) {
-                        $('#aggregator-profit-block').text(reportAggregates['aggregatorprofit']);
-                        $('#aggregator-shipping-block').text(reportAggregates['aggregatorshipping']);
-                        $('#aggregator-tax-block').text(reportAggregates['aggregatortax']);
-                        $('#aggregator-total-block').text(reportAggregates['aggregatortotal']);
-                    }
-                }
-            }
-
-            function updateMasterCheckbox() {
-                var numChkBoxes = $('#orders-grid input[type=checkbox][id!=mastercheckbox]').length;
-                var numChkBoxesChecked = $('#orders-grid input[type=checkbox][id!=mastercheckbox]:checked').length;
-                $('#mastercheckbox').attr('checked', numChkBoxes == numChkBoxesChecked && numChkBoxes > 0);
-            }
-
             function transactionTimeColumnEditor(container, options) {
                 $('<input name="' + options.field + '" />')
                     .appendTo(container)
@@ -247,8 +227,8 @@
                     var customer = Model.Customers[i];
                     <text>
                         {
-                            Id: @customer.Id,
-                            Name: "@Html.Raw(HttpUtility.JavaScriptStringEncode(customer.GetFullName()))"
+                            value: @customer.Id,
+                            text: "@Html.Raw(HttpUtility.JavaScriptStringEncode(customer.GetFullName()))"
                         }
                     </text>
                     if (i < Model.Customers.Count - 1)
@@ -258,63 +238,53 @@
                 }
             ];
 
-            function getCustomerNameById(customerId) {
-                for (var idx = 0,
-                    length = customers.length;
-                    idx < length;
-                    idx++) {
-                    if (customers[idx].Id === customerId) {
-                        return customers[idx].Name;
-                    }
-                }
-                return "";
-            }
-
-            function customerColumnEditor(container, options) {
-                $('<input name="' + options.field + '" />').appendTo(container).kendoComboBox({
-                    autoBind: false,
-                    suggest: true,
-                    placeholder: "Select customer's name",
-                    filter: "contains",
-                    index: 1,
-                    minLength: 1,
-                    dataSource: customers,
-                    dataTextField: "Name",
-                    dataValueField: "Id"
-                });
-            }
-
             var statuses = [
-                { Id: 0, Name: "-- Select status --" }
+                { value: 0, text: "-- Select status --" }
                 @foreach (var status in Model.AvailableStatuses)
                 {
                     <text>,{
-                    Id: @Convert.ToInt16(status),
-                    Name: "@Html.Raw(HttpUtility.JavaScriptStringEncode(status.ToString()))"
-                    }</text>
+                    value: @Convert.ToInt16(status),
+                    text: "@Html.Raw(HttpUtility.JavaScriptStringEncode(status.ToString()))"
+                }</text>
                 }
             ];
 
-            function getStatusNameById(statusId) {
-                for (var idx = 0, length = statuses.length; idx < length; idx++) {
-                    if (statuses[idx].Id === statusId) {
-                        return statuses[idx].Name;
-                    }
-                }
-                return "";
-            }
-
-            function paymentStatusColumnEditor(container, options) {
-                $('<input name="' + options.field + '" />')
-                    .appendTo(container)
-                    .kendoDropDownList({
-                        autoBind: false,
-                        dataSource: statuses,
-                        dataTextField: "Name",
-                        dataValueField: "Id",
-                        index: 1
-                    });
-            }
+//
+//            function approveTransaction(e) {
+//                var transaction = this.dataItem(e.currentTarget.closest("tr"));
+//                var wholeGrid = this.dataItem;
+//                $.ajax({
+//                    url: "@Html.Raw(Url.Action("SetTransactionStatus", "AdminDeposit"))",
+//                    method: "POST",
+//                    data: {
+//                        Id: transaction.Id,
+//                        StatusId: @Convert.ToInt16(PaymentStatus.Paid),
+//                        __RequestVerificationToken: addAntiForgeryToken().__RequestVerificationToken
+//                    },
+//                    // ReSharper disable once InconsistentNaming
+//                    success: function(data, textStatus, jqXHR) {
+//                        window.alert("Success");
+//                        wholeGrid.read();
+//                    }
+//                });
+//            }
+//
+//            function rejectTransaction(e) {
+//                var transaction = this.dataItem(e.currentTarget.closest("tr"));
+//                $.ajax({
+//                    url: "@Html.Raw(Url.Action("SetTransactionStatus", "AdminDeposit"))",
+//                    method: "POST",
+//                    data: {
+//                        Id: transaction.Id,
+//                        StatusId: @Convert.ToInt16(PaymentStatus.Voided),
+//                        __RequestVerificationToken: addAntiForgeryToken().__RequestVerificationToken
+//                    },
+//                    // ReSharper disable once InconsistentNaming
+//                    success: function(data, textStatus, jqXHR) {
+//                        window.alert("Success");
+//                    }
+//                });
+//            }
         </script>
     </div>
     </div>
