@@ -1,4 +1,5 @@
-﻿@using System.Globalization
+﻿
+@using System.Globalization
 @using System.Linq
 @using Nop.Core.Domain.Payments
 @using Nop.Services.Customers
@@ -222,31 +223,12 @@
             }
 
             var customers = [
-                @for (var i = 0; i < Model.Customers.Count; i++)
-                {
-                    var customer = Model.Customers[i];
-                    <text>
-                        {
-                            value: @customer.Id,
-                            text: "@Html.Raw(HttpUtility.JavaScriptStringEncode(customer.GetFullName()))"
-                        }
-                    </text>
-                    if (i < Model.Customers.Count - 1)
-                    {
-                        <text>,</text>
-                    }
-                }
+                @Html.Raw(string.Join(",", Model.Customers.Select(c => string.Format("{{value:{0}, text:\"{1}\"}}", c.Id, HttpUtility.JavaScriptStringEncode(c.GetFullName())))))
             ];
 
             var statuses = [
-                { value: 0, text: "-- Select status --" }
-                @foreach (var status in Model.AvailableStatuses)
-                {
-                    <text>,{
-                    value: @Convert.ToInt16(status),
-                    text: "@Html.Raw(HttpUtility.JavaScriptStringEncode(status.ToString()))"
-                }</text>
-                }
+                { value: 0, text: "-- Select status --" },
+                @Html.Raw(string.Join(",", Model.AvailableStatuses.Select(s => string.Format("{{value:{0}, text:\"{1}\"}}", (int)s, s))))
             ];
 
 //
