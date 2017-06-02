@@ -1,0 +1,173 @@
+﻿@model Nop.Plugin.Ralfeus.OrderItemsList.Models.OrderItemsListModel
+@using System.Web.Mvc.Html
+@using Nop.Web.Framework.UI
+
+@{
+    Layout = "~/Administration/Views/Shared/_AdminLayout.cshtml";
+    //page title
+    ViewBag.Title = T("Ralfeus.Agent.Order").Text;
+    //active menu item (system name)
+    Html.SetActiveMenuItemSystemName("Ralfeus.Agent");
+}
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="content">
+    <div class="form-horizontal">
+    <div class="panel-group">
+    <div class="panel panel-default">
+    <div class="panel-body">
+        <div id="orders-grid"></div>
+        <script>
+            $(document).ready(function() {
+                $("#orders-grid").kendoGrid({
+                    dataSource: {
+                        type: "json",
+                        transport: {
+                            read: {
+                                url: "@Html.Raw(Url.Action("OrderItemsList"))",
+                                type: "POST",
+                                dataType: "json",
+                                data: addAntiForgeryToken
+                            }//,
+//                            update: {
+//                                url: "@Html.Raw(Url.Action("UpdateOrderItem"))",
+//                                type: "POST",
+//                                dataType: "json",
+//                                data: addAntiForgeryToken
+//                            }//,
+//                        parameterMap: function(data, operation) {
+//                            if (operation === "update" || operation === "create") {
+//                                data.TransactionTime = data.TransactionTime.toUTCString();
+//                            }
+//                            return data;
+//                        }
+                        },
+                        schema: {
+                            data: "Data",
+                            total: "Total",
+                            errors: "Errors",
+                            model: {
+                                id: "Id",
+                                fields: {
+                                    Id: {editable: false},
+                                    OrderItemId: {editable: false},
+                                    Price: {type: "number"},
+                                    Comment: {editable: false},
+                                    CustomerName: {editable: false},
+                                    ImagePath: {editable: false},
+                                    ItemName: {editable: false},
+                                    ItemUrl: {editable: false},
+                                    OrderId: {editable: false},
+                                    Quantity: {editable: false},
+                                    SourceShopName: {editable: false},
+                                    StatusId: {type: "number", field: "StatusId"}
+                                }
+                            }
+                        },
+                        requestEnd: function(e) {
+                            if (e.type === "read") {
+                                var response = e.response;
+                                if (response) {
+                                    //store extra data
+                                    reportAggregates = e.response["ExtraData"];
+                                }
+                            } else if (e.type === "update" || e.type === "create") {
+                                this.read();
+                            }
+                        },
+                        error: function(e) {
+                            display_kendoui_grid_error(e);
+                            // Cancel the changes
+                            this.cancelChanges();
+                        },
+                        serverPaging: true,
+                        serverFiltering: true,
+                        serverSorting: true
+                    },
+                    editable: {
+                        mode: "inline"
+                    },
+                    scrollable: false,
+//                dataBound: onDataBound,
+                    columns: [
+                        {
+                            field: "Id",
+                            title: "@T("Ralfeus.Agent.Order.Id") / @T("Ralfeus.Agent.Order.OrderId")",
+                            template: "#=Id#<br /><a href=\"" + "@Url.Action("Edit", "Order", new {area="admin"})" + "/#=OrderId#\\#tab-products\">#=OrderId#</a>"
+                        },
+                        {
+                            field: "CustomerName",
+                            title: "@T("Ralfeus.Agent.Order.Customer")"
+                        },
+                        {
+                            title: "@T("Ralfeus.Agent.Order.ItemName")",
+                            template: ""+
+                                "<a href=\"#=ItemUrl#\">"+
+                                "    <img src=\"#=ImagePath#\" /><br />"+
+                                "    #=ItemName#<br />"+
+                                "    #=SourceShopName#"+
+                                "</a>"
+                        },
+                        {
+                            field: "Price",
+                            title: "@T("Ralfeus.Agent.Order.Price")",
+                            template:
+                                "@T("Ralfeus.Agent.Order.Price"):&nbsp;#=Price#<br />"+
+                                    "@T("Ralfeus.Agent.Order.Quantity"):&nbsp;#=Quantity#",
+                            editor: function(container, options) {
+                                if (options.model.StatusId === @Html.Raw((int)AgentOrderStatus.New)) {
+                                    $('<input required name="' + options.field + '"/>')
+                                        .appendTo(container)
+                                        .kendoNumericTextBox();
+                                } else {
+                                    $("<div>@T("Ralfeus.Agent.Order.Price"):&nbsp;" + options.model.Price + "</div>")
+                                        .appendTo(container);
+                                }
+                                $("<div>@T("Ralfeus.Agent.Order.Quantity"):&nbsp;" + options.model.Quantity + "</div>")
+                                    .appendTo(container);
+                            }
+                        },
+                        {
+                            field: "StatusId",
+                            title: "@T("Ralfeus.Agent.Order.Status")",
+                            values: statuses
+//                        editor: paymentStatusColumnEditor,
+//                        template: '#=getStatusNameById(StatusId)#'
+                        },
+                        {
+                            field: "Comment",
+                            title: "@T("Ralfeus.Agent.Order.Comment")"
+                        },
+                        {
+                            command: [
+                                {
+                                    name: "edit",
+                                    text: {
+                                        edit: "@T("Admin.Common.Edit")",
+                                        update: "@T("Admin.Common.Update")",
+                                        cancel: "@T("Admin.Common.Cancel")"
+                                    }
+                                }
+//                            {
+//                                name: "approve",
+//                                visible: isTransactionPending,
+//                                text: "@T("Admin.Common.Approve")",
+//                                click: approveTransaction
+//                            }
+                            ]
+                        }
+                    ]
+                });
+            });
+
+            var statuses = [
+                @Html.Raw(string.Join(",", Model.AvailableStatuses.Select(s => string.Format("{{value:{0}, text:\"{1}\"}}", (int)s, s))))
+            ];
+        </script>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+}
