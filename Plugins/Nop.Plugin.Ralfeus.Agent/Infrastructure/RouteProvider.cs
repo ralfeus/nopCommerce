@@ -3,7 +3,7 @@ using System.Web.Routing;
 using Nop.Plugin.Ralfeus.Agent.Controllers;
 using Nop.Web.Framework.Mvc.Routes;
 
-namespace Nop.Plugin.Ralfeus.Agent
+namespace Nop.Plugin.Ralfeus.Agent.Infrastructure
 {
     public class RouteProvider : IRouteProvider
     {

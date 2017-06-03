@@ -33,6 +33,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Autofac, Version=4.4.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da">
+      <HintPath>..\..\packages\Autofac.4.4.0\lib\net45\Autofac.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+      <HintPath>..\..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="FluentValidation, Version=6.2.1.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\packages\FluentValidation.6.2.1.0\lib\Net45\FluentValidation.dll</HintPath>
       <Private>False</Private>
@@ -42,7 +53,12 @@
       <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Nop.Data, Version=3.8.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\Presentation\Nop.Web\Administration\Bin\Nop.Data.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web" />
@@ -72,15 +88,37 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Agent.cs" />
     <Compile Include="AgentSettings.cs" />
+    <Compile Include="Data\AgentOrderMap.cs" />
+    <Compile Include="Data\AgentOrderObjectContext.cs" />
+    <Compile Include="Domain\AgentOrder.cs" />
+    <Compile Include="Domain\AgentOrderStatus.cs" />
+    <Compile Include="Infrastructure\DependencyRegistrar.cs" />
+    <Compile Include="Infrastructure\EventsConsumer.cs" />
+    <Compile Include="Infrastructure\Ext.cs" />
+    <Compile Include="Infrastructure\RouteProvider.cs" />
+    <Compile Include="Migrations\201703082106424_AutoidentityOff.cs" />
+    <Compile Include="Migrations\201703082106424_AutoidentityOff.Designer.cs">
+      <DependentUpon>201703082106424_AutoidentityOff.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201703082133535_Add_OrderItemId.cs" />
+    <Compile Include="Migrations\201703082133535_Add_OrderItemId.Designer.cs">
+      <DependentUpon>201703082133535_Add_OrderItemId.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Models\AdminAgentModel.cs" />
     <Compile Include="Models\AgentOrderModel.cs" />
     <Compile Include="Controllers\AdminAgentController.cs" />
     <Compile Include="Controllers\PublicAgentController.cs" />
+    <Compile Include="Models\PublicAgentModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RouteProvider.cs" />
+    <Compile Include="Services\AgentOrderService.cs" />
+    <Compile Include="Services\AgentOrderTotalCalculationService.cs" />
+    <Compile Include="Services\IAgentOrderService.cs" />
     <Compile Include="Validators\AgentOrderValidator.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -99,6 +137,11 @@
       <Name>Nop.Web.Framework</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\..\Presentation\Nop.Web\Administration\Nop.Admin.csproj">
+      <Project>{152C761A-DD2E-4C1F-AF89-DFB2547A3BCA}</Project>
+      <Name>Nop.Admin</Name>
+      <Private>False</Private>
+    </ProjectReference>
     <ProjectReference Include="..\..\Presentation\Nop.Web\Nop.Web.csproj">
       <Project>{4F1F649C-1020-45BE-A487-F416D9297FF3}</Project>
       <Name>Nop.Web</Name>
@@ -106,6 +149,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App.config" />
     <Content Include="Description.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -113,8 +157,16 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="packages.config" />
-    <Content Include="Views\AdminAgent\List.cshtml" />
-    <Content Include="Views\PublicAgent\Link.cshtml">
+    <Content Include="Views\AdminAgent\List.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\PublicAgent\AccountInfoLink.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\PublicAgent\AgentOrders.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\PublicAgent\HeaderMenuLink.cshtml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Views\PublicAgent\NewOrder.cshtml">
@@ -123,6 +175,17 @@
     <Content Include="web.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\201703082106424_AutoidentityOff.resx">
+      <DependentUpon>201703082106424_AutoidentityOff.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201703082133535_Add_OrderItemId.resx">
+      <DependentUpon>201703082133535_Add_OrderItemId.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -9,7 +9,7 @@ namespace Nop.Plugin.Ralfeus.Agent.Validators
     {
         public AgentOrderValidator(ILocalizationService localizationService)
         {
-            RuleFor(m => m.ProductUrl)
+            RuleFor(m => m.ItemUrl)
                 .NotEmpty()
                 .WithMessage(localizationService.GetResource("Ralfeus.Agent.ProductUrlRequired"));
         }

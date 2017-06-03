@@ -1,4 +1,12 @@
-﻿$HEADER$namespace $NAMESPACE$
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Nop.Plugin.Ralfeus.Agent.Domain;
+
+namespace Nop.Plugin.Ralfeus.Agent.Models
 {
-  public class $CLASS$ {$END$}
+    public class AdminAgentModel
+    {
+        public IList<AgentOrderStatus> AvailableStatuses => (IList<AgentOrderStatus>)Enum.GetValues(typeof(AgentOrderStatus)).Cast<AgentOrderStatus>();
+    }
 }

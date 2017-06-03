@@ -2,7 +2,7 @@ Group: Miscellenious
 FriendlyName: External Order Agent
 SystemName: Ralfeus.Agent
 Version: 0.1
-SupportedVersions: 3.80
+SupportedVersions: 3.90
 Author: Mykhaylo Khodorev (ralfeus@gmail.com)
 DisplayOrder: 1
 FileName: Nop.Plugin.Ralfeus.Agent.dll

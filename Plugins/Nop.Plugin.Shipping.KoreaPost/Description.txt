@@ -1,0 +1,9 @@
+﻿Group: Shipping rate computation
+FriendlyName: Korea Post
+SystemName: Shipping.KoreaPost
+Version: 0.1
+SupportedVersions: 3.80
+Author: Mykhaylo Khodorev (ralfeus@gmail.com)
+DisplayOrder: 1
+FileName: Nop.Plugin.Shipping.KoreaPost.dll
+Description: This plugin offers shipping rates for Korea Post

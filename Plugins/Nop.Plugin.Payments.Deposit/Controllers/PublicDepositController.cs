@@ -113,7 +113,7 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
 
             //filter by country
             var paymentMethods = _paymentService
-                .LoadActivePaymentMethods(_workContext.CurrentCustomer.Id, _storeContext.CurrentStore.Id, filterByCountryId)
+                .LoadActivePaymentMethods(_workContext.CurrentCustomer, _storeContext.CurrentStore.Id, filterByCountryId)
                 .Where(pm => pm.PaymentMethodType == PaymentMethodType.Standard || pm.PaymentMethodType == PaymentMethodType.Redirection)
                 .Where(pm => !pm.HidePaymentMethod(cart))
                 .Where(pm => !(pm is DepositPaymentProcessor))

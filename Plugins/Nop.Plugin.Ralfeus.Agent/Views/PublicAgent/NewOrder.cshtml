@@ -37,10 +37,10 @@
         </div>
         <div class="form-fields">
             <div class="inputs">
-                @Html.LabelFor(model => model.ProductUrl, new { }, ":")
-                @Html.EditorFor(model => model.ProductUrl)
+                @Html.LabelFor(model => model.ItemUrl, new { }, ":")
+                @Html.EditorFor(model => model.ItemUrl)
                 @Html.RequiredHint()
-                @Html.ValidationMessageFor(model => model.ProductUrl)
+                @Html.ValidationMessageFor(model => model.ItemUrl)
             </div>
             <div class="inputs">
                 @Html.LabelFor(model => model.ImagePath, new { }, ":")
@@ -73,9 +73,9 @@
                 @Html.ValidationMessageFor(model => model.Quantity)
             </div>
             <div class="inputs">
-                @Html.LabelFor(model => model.ApproxPrice, new { }, ":")
-                @Html.EditorFor(model => model.ApproxPrice)
-                @Html.ValidationMessageFor(model => model.ApproxPrice)
+                @Html.LabelFor(model => model.Price, new { }, ":")
+                @Html.EditorFor(model => model.Price)
+                @Html.ValidationMessageFor(model => model.Price)
             </div>
             <div class="inputs">
                 @Html.LabelFor(model => model.Comment, new { }, ":")
@@ -86,7 +86,7 @@
     </div>
     <div class="buttons">
         <input type="button" id="add-to-cart-button" class="button-1 add-to-cart-button" value="@T("ShoppingCart.AddToCart")"
-           onclick="AjaxCart.addproducttocart_details('@Url.RouteUrl("Ralfeus.Agent.AddOrderToCart")', '#agent-order-form');return false;"
+           onclick="AjaxCart.addproducttocart_details('@Url.Action("AddToCart")', '#agent-order-form');return false;"
         />
     </div>
 }

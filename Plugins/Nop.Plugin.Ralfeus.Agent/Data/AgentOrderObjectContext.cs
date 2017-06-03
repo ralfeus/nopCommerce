@@ -4,13 +4,13 @@ using System.Data.Entity.Infrastructure;
 using Nop.Core;
 using Nop.Data;
 
-namespace Nop.Plugin.Payments.Deposit.Data
+namespace Nop.Plugin.Ralfeus.Agent.Data
 {
-    public class DepositTransactionObjectContext : DbContext, IDbContext
+    public class AgentOrderObjectContext : DbContext, IDbContext
     {
-        public DepositTransactionObjectContext(string nameOrConnectionString) : base(nameOrConnectionString) { }
+        public AgentOrderObjectContext(string nameOrConnectionString) : base(nameOrConnectionString) { }
 
-        public DepositTransactionObjectContext() : base ("Data Source=localhost;Initial Catalog=nopCommerce;Integrated Security=True;Persist Security Info=False") { }
+        public AgentOrderObjectContext() : base ("Data Source=localhost;Initial Catalog=nopCommerce;Integrated Security=True;Persist Security Info=False") { }
 
         public IList<TEntity> ExecuteStoredProcedureList<TEntity>(string commandText, params object[] parameters) where TEntity : BaseEntity, new()
         {
@@ -37,7 +37,7 @@ namespace Nop.Plugin.Payments.Deposit.Data
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            modelBuilder.Configurations.Add(new DepositTransactionMap());
+            modelBuilder.Configurations.Add(new AgentOrderMap());
 
             base.OnModelCreating(modelBuilder);
         }
@@ -51,7 +51,7 @@ namespace Nop.Plugin.Payments.Deposit.Data
         {
             //It's required to set initializer to null (for SQL Server Compact).
             //otherwise, you'll get something like "The model backing the 'your context name' context has changed since the database was created. Consider using Code First Migrations to update the database"
-            Database.SetInitializer<DepositTransactionObjectContext>(null);
+            Database.SetInitializer<AgentOrderObjectContext>(null);
 
             Database.ExecuteSqlCommand(CreateDatabaseInstallationScript());
             SaveChanges();
@@ -59,7 +59,7 @@ namespace Nop.Plugin.Payments.Deposit.Data
 
         public void Uninstall()
         {
-            this.DropPluginTable("DepositTransaction");
+            this.DropPluginTable("AgentOrder");
         }
 
         public new IDbSet<TEntity> Set<TEntity>() where TEntity : BaseEntity

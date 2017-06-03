@@ -1,4 +1,12 @@
-﻿$HEADER$namespace $NAMESPACE$
+﻿namespace Nop.Plugin.Ralfeus.Agent.Domain
 {
-  public enum $ENUM$ {$END$}
+    public enum AgentOrderStatus
+    {
+        New,
+        Offered,
+        Accepted,
+        Rejected,
+        Cancelled,
+        Complete
+    }
 }

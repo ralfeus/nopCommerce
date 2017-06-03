@@ -1,23 +1,16 @@
-﻿using System.Data.Entity.ModelConfiguration;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using Nop.Data.Mapping;
-using Nop.Plugin.Payments.Deposit.Domain;
+using Nop.Plugin.Ralfeus.Agent.Domain;
 
-namespace Nop.Plugin.Payments.Deposit.Data
+namespace Nop.Plugin.Ralfeus.Agent.Data
 {
-    public class DepositTransactionMap : NopEntityTypeConfiguration<DepositTransaction>
+    public class AgentOrderMap : NopEntityTypeConfiguration<AgentOrder>
     {
-        public DepositTransactionMap()
+        public AgentOrderMap()
         {
-            ToTable("DepositTransaction");
+            ToTable("AgentOrder");
             HasKey(m => m.Id);
-            Property(m => m.CustomerId);
-            Property(m => m.PaymentMethodSystemName);
-            Property(m => m.TransactionAmount);
-            Property(m => m.TransactionCurrencyCode);
-            Property(m => m.TransactionTime);
             Property(m => m.Status);
-            Property(m => m.AddedBy);
-            Property(m => m.NewBalance);
         }
     }
 }

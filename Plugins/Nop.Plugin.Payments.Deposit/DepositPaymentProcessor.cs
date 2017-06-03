@@ -60,11 +60,11 @@ namespace Nop.Plugin.Payments.Deposit
             this.AddOrUpdatePluginLocaleResource("Payment.Deposit.PaymentPending",
                 "Your payment is awaiting for administrator's approval");
             this.AddOrUpdatePluginLocaleResource("Payment.Deposit.PaymentPaid", "Your payment is accepted");
+            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ChangeCurrency", "Change deposit currency");
             // {0} - source currency code
             // {1} - target currency code
             // {2} - deposit amount in source currency
             // {3} - deposit amount in target currency
-            this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ChangeCurrency", "Change deposit currency");
             this.AddOrUpdatePluginLocaleResource("Payment.Deposit.ChangeCurrencyConfirm",
                 "You are abount to change your deposit currency from {0} to {1}.<br />"+
                 "Now you have {2} {0}.<br />"+
@@ -73,7 +73,6 @@ namespace Nop.Plugin.Payments.Deposit
 //            this.AddOrUpdatePluginLocaleResource("Admin.Common.Approve", "App"
 //            this.AddOrUpdatePluginLocaleResource("Admin.Common.Reject"
 
-            //TODO: Set up widget setting so it's immediately active
             base.Install();
         }
 
@@ -129,6 +128,8 @@ namespace Nop.Plugin.Payments.Deposit
         public RecurringPaymentType RecurringPaymentType => RecurringPaymentType.NotSupported;
         public PaymentMethodType PaymentMethodType => PaymentMethodType.Standard;
         public bool SkipPaymentInfo => false;
+        
+        public string PaymentMethodDescription { get; }
 
         public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {

@@ -8,9 +8,10 @@ using Nop.Data;
 using Nop.Plugin.Ralfeus.Agent.Data;
 using Nop.Plugin.Ralfeus.Agent.Domain;
 using Nop.Plugin.Ralfeus.Agent.Services;
+using Nop.Services.Orders;
 using Nop.Web.Framework.Mvc;
 
-namespace Nop.Plugin.Ralfeus.Agent
+namespace Nop.Plugin.Ralfeus.Agent.Infrastructure
 {
     public class DependencyRegistrar : IDependencyRegistrar
     {
@@ -19,6 +20,10 @@ namespace Nop.Plugin.Ralfeus.Agent
         public void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             builder.RegisterType<AgentOrderService>().As<IAgentOrderService>().InstancePerLifetimeScope();
+
+            builder.RegisterType<AgentOrderTotalCalculationService>()
+                .As<IOrderTotalCalculationService>()
+                .InstancePerLifetimeScope();
 
             //data context
             this.RegisterPluginDataContext<AgentOrderObjectContext>(builder, CONTEXT_NAME );
@@ -30,6 +35,6 @@ namespace Nop.Plugin.Ralfeus.Agent
                 .InstancePerLifetimeScope();
         }
 
-        public int Order => 1;
+        public int Order => 100;
     }
 }

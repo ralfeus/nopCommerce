@@ -65,7 +65,8 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
             //locales
             AddLocales(_languageService, model.Locales, (locale, languageId) =>
             {
-                locale.DescriptionText = depositPaymentSettings.GetLocalizedSetting(x => x.DescriptionText, languageId, false, false);
+                locale.DescriptionText = depositPaymentSettings.GetLocalizedSetting(x => x.DescriptionText, 
+                    languageId, _storeContext.CurrentStore.Id, false, false);
             });
             #region Stores
 // It concerns diferent settings for different stores. Probably in the future I'll implement that
@@ -118,7 +119,7 @@ namespace Nop.Plugin.Payments.Deposit.Controllers
             //var balance = this._workContext.CurrentCustomer.GetAttribute<decimal>("Deposit", genericAttributeService);
             var model = new PaymentInfoModel
             {
-                DescriptionText = depositPaymentSettings.GetLocalizedSetting(x => x.DescriptionText, _workContext.WorkingLanguage.Id),
+                DescriptionText = depositPaymentSettings.GetLocalizedSetting(x => x.DescriptionText, _workContext.WorkingLanguage.Id, _storeContext.CurrentStore.Id),
                 CurrentDepositAmount = this._priceFormatter.FormatPrice(customer.GetDepositBalance(), true, customerDepositCurrency),
                 FutureDepositAmount = this._priceFormatter.FormatPrice(
                     customer.GetDepositBalance() - totalCustomerDepositCurrency, true, customerDepositCurrency),

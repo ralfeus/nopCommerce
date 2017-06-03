@@ -1,18 +1,189 @@
-﻿@model $model$
-
+﻿@model Nop.Plugin.Ralfeus.Agent.Models.PublicAgentModel
+@using System.Security.Policy
+@using Nop.Plugin.Ralfeus.Agent.Domain
+@using Nop.Web.Framework
+@using Nop.Web.Framework.UI
 @{
-  Layout = null;
+    const string kendoVersion = "2017.1.118";
+    // CSS
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.rtl.min.css", kendoVersion));
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.default.min.css", kendoVersion));
+    Html.AppendCssFileParts(string.Format("~/Administration/Content/kendo/{0}/kendo.common.min.css", kendoVersion));
+    // Scripts
+    Html.AppendScriptParts(string.Format("~/Administration/Scripts/kendo/{0}/kendo.web.min.js", kendoVersion));
+
+    Layout = "~/Views/Shared/_ColumnsTwo.cshtml";
+
+    //title
+    Html.AddTitleParts(T("PageTitle.Account").Text);
+    //page class
+    Html.AppendPageCssClassParts("html-account-page");
+    Html.AppendPageCssClassParts("html-customer-info-page");
 }
+@section left
+{
+    @Html.Action("CustomerNavigation", "Customer")
+}
+@using (Html.BeginRouteForm("", FormMethod.Post, new {id = "payForm"}))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="repost-payment" />
+}
+<div class="page account-page">
+    <div class="page-title">
+        <h1>@T("Ralfeus.Agent")</h1>
+    </div>
+    <div class="page-body">
+        <div id="orders-grid"></div>
+        <script>
+            $(document).ready(function() {
+                $("#orders-grid").kendoGrid({
+                    dataSource: {
+                        type: "json",
+                        transport: {
+                            read: {
+                                url: "@Html.Raw(Url.Action("AgentList"))",
+                                type: "POST",
+                                dataType: "json",
+                                data: addAntiForgeryToken
+                            },
+                            update: {
+                                url: "@Html.Raw(Url.Action("UpdateAgent"))",
+                                type: "POST",
+                                dataType: "json",
+                                data: addAntiForgeryToken
+                            }//,
+//                        parameterMap: function(data, operation) {
+//                            if (operation === "update" || operation === "create") {
+//                                data.TransactionTime = data.TransactionTime.toUTCString();
+//                            }
+//                            return data;
+//                        }
+                        },
+                        schema: {
+                            data: "Data",
+                            total: "Total",
+                            errors: "Errors",
+                            model: {
+                                id: "Id",
+                                fields: {
+                                    Id: {editable: false},
+                                    OrderItemId: {editable: false},
+                                    PriceFormated: {editable: false},
+                                    Comment: {editable: false},
+                                    ImagePath: {editable: false},
+                                    ItemName: {editable: false},
+                                    ItemUrl: {editable: false},
+                                    OrderId: {editable: false},
+                                    Quantity: {editable: false},
+                                    SourceShopName: {editable: false},
+                                    StatusId: {type: "number", field: "StatusId"}
+                                }
+                            }
+                        },
+                        requestEnd: function(e) {
+                            if (e.type === "read") {
+                                var response = e.response;
+                                    //store extra data
+//                                    reportAggregates = e.response["ExtraData"];
+                            } else if (e.type === "update" || e.type === "create") {
+                                var response = e.response;
+                                if (response) {
+                                    if (response.UpdateResult === "To pay") {
+                                        kendo.confirm("@T("Ralfeus.Agent.ReadyToPay")").then(function (t) {
+                                            $('#payForm').attr("action", "/orderdetails/" + response.OrderId);
+                                            $('#payForm').submit();
+                                        });
+                                    }
+                                    //store extra data
+//                                    reportAggregates = e.response["ExtraData"];
+                                }
+                                this.read();
+                            }
+                        },
+                        error: function(e) {
+                            display_kendoui_grid_error(e);
+                            // Cancel the changes
+                            this.cancelChanges();
+                        },
+                        serverPaging: true,
+                        serverFiltering: true,
+                        serverSorting: true
+                    },
+                    editable: {
+                        mode: "inline"
+                    },
+                    scrollable: false,
+//                dataBound: onDataBound,
+                    columns: [
+                        {
+                            field: "OrderId",
+                            title: "@T("Ralfeus.Agent.Order.OrderId")",
+                            template: "#=OrderItemId#<br /><a href=\"/orderdetails/#=OrderId#\">#=OrderId#</a>"
+                        },
+                        {
+                            title: "@T("Ralfeus.Agent.Order.ItemName")",
+                            template: ""+
+                                "<a href=\"#=ItemUrl#\">"+
+                                "    <img src=\"#=ImagePath#\" /><br />"+
+                                "    #=ItemName#<br />"+
+                                "    #=SourceShopName#"+
+                                "</a>"
+                        },
+                        {
+                            field: "Price",
+                            title: "@T("Ralfeus.Agent.Order.Price")",
+                            template:
+                                "@T("Ralfeus.Agent.Order.Price"):&nbsp;#=PriceFormated#<br />"+
+                                    "@T("Ralfeus.Agent.Order.Quantity"):&nbsp;#=Quantity#"
+                        },
+                        {
+                            field: "StatusId",
+                            title: "@T("Ralfeus.Agent.Order.Status")",
+                            values: statuses
+//                        editor: paymentStatusColumnEditor,
+//                        template: '#=getStatusNameById(StatusId)#'
+                        },
+                        {
+                            field: "Comment",
+                            title: "@T("Ralfeus.Agent.Order.Comment")"
+                        },
+                        {
+                            command: [
+                                {
+                                    name: "accept",
+                                    visible: function(dataItem) {
+                                        return dataItem.StatusId === @Html.Raw((int)AgentOrderStatus.Offered);
+                                    },
+                                    text: "@T("Ralfeus.Agent.Accept")",
+                                    click: function(e) {setOfferResponse(this, e, @Html.Raw((int)AgentOrderStatus.Accepted));}
+                                },
+                                {
+                                    name: "reject",
+                                    visible: function(dataItem) {
+                                        return dataItem.StatusId === @Html.Raw((int)AgentOrderStatus.Offered);
+                                    },
+                                    text: "@T("Ralfeus.Agent.Reject")",
+                                    click: function(e) {setOfferResponse(this, e, @Html.Raw((int)AgentOrderStatus.Rejected));}
+                                }
+                            ]
+                        }
+                    ]
+                });
+            });
 
-<!DOCTYPE html>
+            function setOfferResponse(grid, sender, response) {
+                sender.preventDefault();
+                var dataItem = grid.dataItem($(sender.currentTarget).closest("tr"));
+                dataItem.StatusId = response;
+                dataItem.dirty = true;
+                grid.saveChanges();
+            }
 
-<html>
-<head>
-  <title>$title$</title>
-</head>
-<body>
-  <div>
-    $END$  
-  </div>
-</body>
-</html>
+            var statuses = [
+                @Html.Raw(string.Join(",", Model.AvailableStatuses.Select(s => string.Format("{{value:{0}, text:\"{1}\"}}", (int)s, s))))
+            ];
+
+        </script>
+    </div>
+</div>
