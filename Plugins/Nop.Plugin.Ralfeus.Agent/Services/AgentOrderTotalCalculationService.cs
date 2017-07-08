@@ -108,14 +108,17 @@ namespace Nop.Plugin.Ralfeus.Agent.Services
 
         public decimal? GetShoppingCartTotal(IList<ShoppingCartItem> cart, bool? useRewardPoints = null, bool usePaymentMethodAdditionalFee = true)
         {
-            throw new System.NotImplementedException();
+            return _orderTotalCalculationServiceImplementation.GetShoppingCartTotal(cart, useRewardPoints,
+                usePaymentMethodAdditionalFee);
         }
 
         public decimal? GetShoppingCartTotal(IList<ShoppingCartItem> cart, out decimal discountAmount, out List<DiscountForCaching> appliedDiscounts,
             out List<AppliedGiftCard> appliedGiftCards, out int redeemedRewardPoints, out decimal redeemedRewardPointsAmount,
             bool? useRewardPoints = null, bool usePaymentMethodAdditionalFee = true)
         {
-            throw new System.NotImplementedException();
+            return _orderTotalCalculationServiceImplementation.GetShoppingCartTotal(cart, out discountAmount,
+                out appliedDiscounts, out appliedGiftCards, out redeemedRewardPoints, out redeemedRewardPointsAmount,
+                useRewardPoints, usePaymentMethodAdditionalFee);
         }
 
         public decimal? GetShoppingCartTotal(IList<ShoppingCartItem> cart, bool ignoreRewardPonts = false, bool usePaymentMethodAdditionalFee = true)
@@ -158,7 +161,8 @@ namespace Nop.Plugin.Ralfeus.Agent.Services
 
         public decimal CalculateApplicableOrderTotalForRewardPoints(decimal orderShippingInclTax, decimal orderTotal)
         {
-            throw new System.NotImplementedException();
+            return _orderTotalCalculationServiceImplementation.CalculateApplicableOrderTotalForRewardPoints(
+                orderShippingInclTax, orderTotal);
         }
 
         public int CalculateRewardPoints(Customer customer, decimal amount)

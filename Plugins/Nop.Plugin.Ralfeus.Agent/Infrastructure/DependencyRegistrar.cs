@@ -1,9 +1,11 @@
-﻿using Autofac;
+﻿using System;
+using Autofac;
 using Autofac.Core;
 using Nop.Core.Configuration;
 using Nop.Core.Data;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
+using Nop.Core.Plugins;
 using Nop.Data;
 using Nop.Plugin.Ralfeus.Agent.Data;
 using Nop.Plugin.Ralfeus.Agent.Domain;
@@ -19,6 +21,11 @@ namespace Nop.Plugin.Ralfeus.Agent.Infrastructure
 
         public void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
+            if (new PluginFinder().GetPluginDescriptorBySystemName("Ralfeus.Agent") == null)
+            {
+                return;
+            }
+
             builder.RegisterType<AgentOrderService>().As<IAgentOrderService>().InstancePerLifetimeScope();
 
             builder.RegisterType<AgentOrderTotalCalculationService>()
