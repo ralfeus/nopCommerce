@@ -1,0 +1,9 @@
+Group: Miscellenious
+FriendlyName: Order Items list
+SystemName: Ralfeus.OrderItemsList
+Version: 0.1
+SupportedVersions: 3.90
+Author: Mykhaylo Khodorev (ralfeus@gmail.com)
+DisplayOrder: 1
+FileName: Nop.Plugin.Ralfeus.OrderItemsList.dll
+Description: This plugin provides functionality managing ordered items regardless of orders. Usefull for cases like requesting items from a vendor

@@ -13,263 +13,389 @@
 @using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
+    <div class="content-header clearfix">
+        <div class="pull-right">
+            <div class="btn-group">
+                <button type="button" class="btn bg-purple">
+                    <i class="fa fa-file-pdf-o"></i>
+                    @T("Admin.Orders.PdfInvoices")
+                </button>
+                <button type="button" class="btn bg-purple dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                    <span class="caret"></span>
+                    <span class="sr-only">&nbsp;</span>
+                </button>
+                <ul class="dropdown-menu" role="menu">
+                    <li>
+                        <button type="submit" name="pdf-invoice-all">
+                            @T("Admin.Orders.PdfInvoices.All")
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" id="pdf-invoice-selected">
+                            @T("Admin.Orders.PdfInvoices.Selected")
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <div class="content">
-        <div class="form-horizontal">
-            <div class="panel-group">
-                <div class="panel panel-default panel-search">
-                    <div class="panel-body">
-                        <div class="row">
-                            <div class="col-md-5">
-                                <div class="form-group">
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.StartDate)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopEditorFor(model => model.StartDate)
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.EndDate)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopEditorFor(model => model.EndDate)
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.ProductId)
-                                    </div>
-                                    <div class="col-md-8">
-                                        <input type="text" id="search-product-name" autocomplete="off" class="form-control" />
-                                        <span id="search-product-friendly-name"></span>
-                                        <button type="button" id="search-product-clear" class="btn bg-gray" style="display: none; margin-top: 5px;">@T("Admin.Common.Clear")</button>
-
-                                        @Html.TextBoxFor(model => model.ProductId, new { autocomplete = "off", style = "display:none;" })
-                                        <script type="text/javascript">
-                                            $(document).ready(function() {
-                                                $('#search-product-name').autocomplete({
-                                                    delay: 500,
-                                                    minLength: 3,
-                                                    source: '@(Url.Action("ProductSearchAutoComplete"))',
-                                                    select: function(event, ui) {
-                                                        $('#@Html.FieldIdFor(model => model.ProductId)').val(ui.item.productid);
-                                                        $('#search-product-friendly-name').text(ui.item.label);
-
-                                                        $('#search-product-clear').show();
-                                                        return false;
-                                                    }
-                                                });
-
-                                                //remove button
-                                                $('#search-product-clear').click(function() {
-                                                    $('#@Html.FieldIdFor(model => model.ProductId)').val('0');
-                                                    $('#search-product-friendly-name').text('');
-                                                    $('#search-product-clear').hide();
-                                                    return false;
-                                                });
-                                            });
-                                        </script>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    @Html.NopLabelFor(model => model.OrderItemStatusIds)
-                                </div>
-                                <div class="col-md-8">
-                                    @Html.EditorFor(model => model.OrderItemStatusIds, new { SelectList = Model.AvailableOrderItemStatuses })
-                                </div>
-                            </div>
-                            <div class="col-md-7">
-                                <div class="form-group" @(Model.AvailableStores.SelectionIsNotPossible() ? Html.Raw("style=\"display:none\"") : null)>
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.StoreId)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopDropDownList("StoreId", Model.AvailableStores)
-                                    </div>
-                                </div>
-                                <div class="form-group" @(Model.AvailableVendors.SelectionIsNotPossible() ? Html.Raw("style='display: none;'") : null)>
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.VendorId)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopDropDownList("VendorId", Model.AvailableVendors)
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.PrivateComment)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopEditorFor(model => model.PrivateComment)
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-md-4">
-                                        @Html.NopLabelFor(model => model.PublicComment)
-                                    </div>
-                                    <div class="col-md-8">
-                                        @Html.NopEditorFor(model => model.PublicComment)
-                                    </div>
-                                </div>
-                            </div>
+    <div class="form-horizontal">
+    <div class="panel-group">
+    <div class="panel panel-default panel-search">
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.OrderId)
                         </div>
-                        <div class="row">
-                            <div class="col-md-7 col-md-offset-5">
-                                <button type="button" id="search-orders" class="btn btn-primary btn-search">
-                                    <i class="fa fa-search"></i>
-                                    @T("Admin.Common.Search")
-                                </button>
-                            </div>
+                        <div class="col-md-8">
+                            @Html.NopEditorFor(model => model.OrderId)
                         </div>
                     </div>
-                </div>
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.OrderItemId)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopEditorFor(model => model.OrderItemId)
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.ProductId)
+                        </div>
+                        <div class="col-md-8">
+                            <input type="text" id="search-product-name" autocomplete="off" class="form-control text-box single-line" />
+                            <span id="search-product-friendly-name"></span>
+                            <button type="button" id="search-product-clear" class="btn bg-gray" style="display: none; margin-top: 5px;">@T("Admin.Common.Clear")</button>
 
-                <div class="panel panel-default">
-                    <div class="panel-body">
-                        <table id="order-items-grid">
-                            <colgroup>
-                                <col id="checkbox"/>
-                                <col id="ids"/>
-                                <col id="customer"/>
-                                <col id="item-description"/>
-                                <col id="item-price"/>
-                                <col id="item-status"/>
-                                <col id="actions"/>
-                            </colgroup>
-                            <thead>
-                            <th/>
-                            <th>@T("Ralfeus.OrderItems.Ids")</th>
-                            <th>@T("Ralfeus.OrderItems.Customer")</th>
-                            <th>@T("Ralfeus.OrderItems.Description")</th>
-                            <th>@T("Ralfeus.OrderItems.Price")</th>
-                            <th>@T("Ralfeus.OrderItems.Status")</th>
-                            <th>@T("Ralfeus.OrderItems.Actions")</th>
-                            </thead>
-                        </table>
-                        <script id="rowTemplate" type="text/x-kendo-tmpl">
-            <tr data-uid="#: uid #">
-                <td><input type='checkbox' value='#=Id#' class='checkboxGroups'/></td>
-                <td>#=Id#<br /><a href=\"" + "@Url.Action("Edit", "Order", new {area = "admin"})" + "/#=OrderId#\">#=OrderId#</a></td>
-                <td>#=CustomerName#</td>
-                <td>
-                    <table>
-                        <tr>
-                            <td rowspan="2"><img src="" /></td>
-                            <td>#=ProductName#</td>
-                        </tr>
-                        <tr><td>#=ProductAttributes#</td></tr>
-                    </table>
-                </td>
-                <td>#=VendorName#</td>
-                <td>#=Price#<br />#=Quantity#<br />#=Weight#</td>
-                <td>#=OrderItemStatus#</td>
-                <td />
-            </tr>
-        </script>
-                        <script>
-                            $(document).ready(function() {
-                                $("#order-items-grid").kendoGrid({
-                                    dataSource: {
-                                        type: "json",
-                                        transport: {
-                                            read: {
-                                                url: "@Html.Raw(Url.Action("OrderItemsList"))",
-                                                type: "POST",
-                                                dataType: "json",
-                                                data: addAntiForgeryToken
-                                            } //,
-//                            update: {
-//                                url: "@Html.Raw(Url.Action("UpdateOrderItem"))",
-//                                type: "POST",
-//                                dataType: "json",
-//                                data: addAntiForgeryToken
-//                            }//,
-//                        parameterMap: function(data, operation) {
-//                            if (operation === "update" || operation === "create") {
-//                                data.TransactionTime = data.TransactionTime.toUTCString();
-//                            }
-//                            return data;
-//                        }
-                                        },
-                                        schema: {
-                                            data: "Data",
-                                            total: "Total",
-                                            errors: "Errors",
-                                            model: {
-                                                id: "Id",
-                                                fields: {
-                                                    Id: { editable: false },
-                                                    OrderItemId: { editable: false },
-                                                    Price: { type: "number" },
-                                                    Comment: { editable: false },
-                                                    CustomerName: { editable: false },
-                                                    ImagePath: { editable: false },
-                                                    ItemName: { editable: false },
-                                                    ItemUrl: { editable: false },
-                                                    OrderId: { editable: false },
-                                                    Quantity: { editable: false },
-                                                    SourceShopName: { editable: false },
-                                                    StatusId: { type: "number", field: "StatusId" }
-                                                }
-                                            }
-                                        },
-                                        requestEnd: function(e) {
-                                            if (e.type === "read") {
-                                                var response = e.response;
-                                                if (response) {
-                                                    //store extra data
-                                                    reportAggregates = e.response["ExtraData"];
-                                                }
-                                            } else if (e.type === "update" || e.type === "create") {
-                                                this.read();
-                                            }
-                                        },
-                                        error: function(e) {
-                                            display_kendoui_grid_error(e);
-                                            // Cancel the changes
-                                            this.cancelChanges();
-                                        },
-                                        serverPaging: true,
-                                        serverFiltering: true,
-                                        serverSorting: true
-                                    },
-                                    rowTemplate: kendo.template($("#rowTemplate").html()),
-                                    editable: {
-                                        mode: "inline"
-                                    },
-                                    scrollable: false,
-//                dataBound: onDataBound,
-                                    columns: [
-                                        {
-                                            command: [
-                                                {
-                                                    name: "edit",
-                                                    text: {
-                                                        edit: "@T("Admin.Common.Edit")",
-                                                        update: "@T("Admin.Common.Update")",
-                                                        cancel: "@T("Admin.Common.Cancel")"
-                                                    }
-                                                }
-//                            {
-//                                name: "approve",
-//                                visible: isTransactionPending,
-//                                text: "@T("Admin.Common.Approve")",
-//                                click: approveTransaction
-//                            }
-                                            ]
+                            @Html.TextBoxFor(model => model.ProductId, new { autocomplete = "off", style = "display:none;" })
+                            <script type="text/javascript">
+                                $(document).ready(function() {
+                                    $('#search-product-name').autocomplete({
+                                        delay: 500,
+                                        minLength: 3,
+                                        source: '@(Url.Action("ProductSearchAutoComplete"))',
+                                        select: function(event, ui) {
+                                            $('#@Html.FieldIdFor(model => model.ProductId)').val(ui.item.productid);
+                                            $('#search-product-friendly-name').text(ui.item.label);
+
+                                            $('#search-product-clear').show();
+                                            return false;
                                         }
-                                    ]
-                                });
-                            });
+                                    });
 
-                            var statuses = [
-                                @Html.Raw(string.Join(",", Model.AvailableOrderItemStatuses.Select(s => string.Format("{{value:{0}, text:\"{1}\"}}", s.Value, s.Text))))
-                            ];
-                        </script>
+                                    //remove button
+                                    $('#search-product-clear').click(function() {
+                                        $('#@Html.FieldIdFor(model => model.ProductId)').val('0');
+                                        $('#search-product-friendly-name').text('');
+                                        $('#search-product-clear').hide();
+                                        return false;
+                                    });
+                                });
+                            </script>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        @Html.NopLabelFor(model => model.OrderItemStatusIds)
+                    </div>
+                    <div class="col-md-8">
+                        @Html.EditorFor(model => model.OrderItemStatusIds, new { SelectList = Model.AvailableOrderItemStatuses })
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="form-group" @(Model.AvailableStores.SelectionIsNotPossible() ? Html.Raw("style=\"display:none\"") : null)>
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.StoreId)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopDropDownList("StoreId", Model.AvailableStores)
+                        </div>
+                    </div>
+                    <div class="form-group" @(Model.AvailableVendors.SelectionIsNotPossible() ? Html.Raw("style='display: none;'") : null)>
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.VendorId)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopDropDownList("VendorId", Model.AvailableVendors)
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.CustomerId)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopDropDownList("CustomerId", Model.AvailableCustomers)
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.PrivateComment)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopEditorFor(model => model.PrivateComment)
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-4">
+                            @Html.NopLabelFor(model => model.PublicComment)
+                        </div>
+                        <div class="col-md-8">
+                            @Html.NopEditorFor(model => model.PublicComment)
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-7 col-md-offset-5">
+                    <button type="button" id="search-order-items" class="btn btn-primary btn-search">
+                        <i class="fa fa-search"></i>
+                        @T("Admin.Common.Search")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <table id="order-items-grid">
+                <colgroup>
+                    <col id="checkbox"/>
+                    <col id="ids"/>
+                    <col id="customer"/>
+                    <col id="item-description"/>
+                    <col id="vendor" />
+                    <col id="item-price"/>
+                    <col id="item-status"/>
+                    <col id="actions"/>
+                </colgroup>
+                <thead>
+                <th/>
+                <th>@T("Ralfeus.OrderItems.Ids")</th>
+                <th>@T("Ralfeus.OrderItems.Customer")</th>
+                <th>@T("Ralfeus.OrderItems.Description")</th>
+                <th>@T("Ralfeus.OrderItems.Price")</th>
+                <th>@T("Ralfeus.OrderItems.Status")</th>
+                <th>@T("Ralfeus.OrderItems.Comments")</th>
+                <th>@T("Ralfeus.OrderItems.Actions")</th>
+                </thead>
+            </table>
+            <script id="rowTemplate" type="text/x-kendo-tmpl">
+                <tr data-uid="#: uid #">
+                    <td><input type='checkbox' value='#=Id#' class='checkboxGroups'/></td>
+                    <td>#=Id#<br /><a href="@Url.Action("Edit", "Order", new {area = "admin"})/#=OrderId#">#=OrderId#</a></td>
+                    <td>#=CustomerName#</td>
+                    <td>
+                        <table class="layout-grid">
+                            <tr>
+                                <td rowspan="3" class="picture-layout-cell"><img src="#=PictureThumbnailUrl#" /></td>
+                                <td>#=ProductName#</td>
+                            </tr>
+                            <tr><td><font color="red">#=AttributeInfo#</font></td></tr>
+                            <tr><td>@T("Ralfeus.OrderItems.Vendor"): #=VendorName#</td></tr>
+                        </table>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        @T("Ralfeus.OrderItems.Price"): #=kendo.format("{0:@Model.CurrencyFormat.Replace("#", "\\#")}", Price)#<br />
+                        @T("Ralfeus.OrderItems.Quantity"): #=Quantity#<br />
+                        @T("Ralfeus.OrderItems.Weight"): #=Weight#
+                    </td>
+                    <td>#=OrderItemStatus#</td>
+                    <td style="white-space: nowrap;">
+                        <ul>
+                            <li id="showPrivateComment#: uid #">@T("Ralfeus.OrderItems.PrivateComment")</li>
+                            <li id="showPublicComment#: uid #">@T("Ralfeus.OrderItems.PublicComment")</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <a class="k-button k-button-icontext k-grid-edit" href="\#">
+                            <span class="k-icon k-edit"></span>Edit
+                        </a>
+                    </td>
+                </tr>
+            </script>
+            <script>
+                $(document).ready(function() {
+                    $("#order-items-grid").kendoGrid({
+                        dataSource: {
+                            type: "json",
+                            transport: {
+                                read: {
+                                    url: "@Html.Raw(Url.Action("OrderItemsList"))",
+                                    type: "POST",
+                                    dataType: "json",
+                                    data: getOrderItemsListSearchParams
+                                },
+                                update: {
+                                    url: "@Html.Raw(Url.Action("UpdateOrderItem"))",
+                                    type: "POST",
+                                    dataType: "json"
+                                },
+                                parameterMap: function(data, operation) {
+                                    if (operation === "update") {
+                                        data.AttributeInfo = "";
+                                    }
+                                    addAntiForgeryToken(data);
+                                    return data;
+                                }
+                            },
+                            schema: {
+                                data: "Data",
+                                total: "Total",
+                                errors: "Errors",
+                                model: {
+                                    id: "Id",
+                                    fields: {
+                                        Id: { editable: false },
+                                        AttributeInfo: {editable: false},
+                                        Price: { editable: false },
+                                        PrivateComment: { type: "string" },
+                                        PublicComment: { type: "string" },
+                                        CustomerName: { editable: false },
+                                        ImagePath: { editable: false },
+                                        ItemName: { editable: false },
+                                        ItemUrl: { editable: false },
+                                        OrderId: { editable: false },
+                                        Quantity: { type: "number" },
+                                        OrderItemStatusId: { type: "number" },
+                                        OrderItemStatus: { type: "string"},
+                                        PictureThumbnailUrl: {editable: false},
+                                        Weight: { editable: false }
+                                    }
+                                }
+                            },
+                            requestEnd: function(e) {
+                                if (e.type === "read") {
+                                    var response = e.response;
+                                    if (response) {
+                                        //store extra data
+                                        reportAggregates = e.response["ExtraData"];
+                                    }
+                                } else if (e.type === "update" || e.type === "create") {
+                                    this.read();
+                                }
+                            },
+                            error: function(e) {
+                                display_kendoui_grid_error(e);
+                                // Cancel the changes
+                                this.cancelChanges();
+                            },
+                            serverPaging: true,
+                            serverFiltering: true,
+                            serverSorting: true
+                        },
+                        rowTemplate: kendo.template($("#rowTemplate").html()),
+                        editable: "popup",
+                        scrollable: false,
+                        columns: [ 
+                            "Id",
+                            "OrderId",
+                            "CustomerName",
+                            "Price",
+                            "Quantity",
+                            "Weight",
+                            { field: "OrderItemStatusId", editor: statusDropDownEditor },
+                            "PrivateComment",
+                            "PublicComment",
+                            { command: ["edit"] } 
+                        ]
+                    });
+                    $("#order-items-grid").kendoTooltip({
+                        filter: "li[id^=showPrivateComment]", //this filter selects the second column's cells
+                        position: "top",
+                        content: function(e){
+                            var dataItem = $("#order-items-grid").data("kendoGrid").dataItem(e.target.closest("tr"));
+                            var content = dataItem.PrivateComment;
+                            return content;
+                        }
+                    });                    
+                    $("#order-items-grid").kendoTooltip({
+                        filter: "li[id^=showPublicComment]", //this filter selects the second column's cells
+                        position: "bottom",
+                        content: function(e){
+                            var dataItem = $("#order-items-grid").data("kendoGrid").dataItem(e.target.closest("tr"));
+                            var content = dataItem.PublicComment;
+                            return content;
+                        }
+                    });
+                });
+
+                var statuses = [
+                    @Html.Raw(string.Join(",", 
+                        Model.AvailableOrderItemStatuses
+                            .Where(ois => ois.Value != "0")
+                            .Select(s => string.Format("{{Id:{0}, Value:\"{1}\"}}", s.Value, s.Text))))
+                ];
+                
+                function statusDropDownEditor(container, options) {
+                    $('<input required name="' + options.field + '"/>')
+                        .appendTo(container)
+                        .kendoDropDownList({
+                            autoBind: false,
+                            dataTextField: "Value",
+                            dataValueField: "Id",
+                            dataSource: statuses
+                        });
+                }
+                            
+                //search button
+                $('#search-order-items').click(function () {
+                    //search
+                    var grid = $('#order-items-grid').data('kendoGrid');
+                    grid.dataSource.page(1); //new search. Set page size to 1
+                    //grid.dataSource.read(); we already loaded the grid above using "page" function
+                    //clear selected checkboxes
+                    $('.checkboxGroups').attr('checked', false).change();
+                    selectedIds = [];
+                    return false;
+                });
+
+                $(""
+                    .concat("#@Html.FieldIdFor(model => model.OrderId)",
+                            "#@Html.FieldIdFor(model => model.OrderItemId)",
+                            "#@Html.FieldIdFor(model => model.ProductId)",
+                            "#@Html.FieldIdFor(model => model.OrderItemStatusIds)",
+                            "#@Html.FieldIdFor(model => model.CustomerId)",
+                            "#@Html.FieldIdFor(model => model.PrivateComment)",
+                            "#@Html.FieldIdFor(model => model.PublicComment)"))
+                    .keydown(function (event) {
+                            if (event.keyCode === 13) {
+                                $("#search-order-items").click();
+                                return false;
+                            }
+                        }
+                    );
+            </script>
+        </div>
     </div>
     </div>
+    </div>
+    </div>
+    <script type="text/javascript">
+        function getOrderItemsListSearchParams() {
+            var data = {
+                OrderId: $('#@Html.FieldIdFor(model => model.OrderId)').val(),
+                OrderItemId: $('#@Html.FieldIdFor(model => model.OrderItemId)').val(),
+                ProductId: $('#@Html.FieldIdFor(model => model.ProductId)').val(),
+                OrderItemStatusIds: $('#@Html.FieldIdFor(model => model.OrderItemStatusIds)').val(),
+                CustomerId: $('#@Html.FieldIdFor(model => model.CustomerId)').val(),
+                PrivateComment: $('#@Html.FieldIdFor(model => model.PrivateComment)').val(),
+                PublicComment: $('#@Html.FieldIdFor(model => model.PublicComment)').val()
+            };
+            addAntiForgeryToken(data);
+            return data;
+        }
+    </script>
 }
+<style>
+    .picture-layout-cell {
+        width: 1px;
+    }
+    .layout-grid {
+        border: 0px;
+    }
+</style>
