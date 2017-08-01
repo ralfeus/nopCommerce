@@ -33,6 +33,7 @@ namespace Nop.Admin.Models.Directory
         public string DisplayLocale { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.Rate")]
+        [UIHint("Currency")]
         public decimal Rate { get; set; }
 
         [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.CustomFormatting")]
@@ -61,6 +62,9 @@ namespace Nop.Admin.Models.Directory
         [UIHint("MultiSelect")]
         public IList<int> SelectedStoreIds { get; set; }
         public IList<SelectListItem> AvailableStores { get; set; }
+
+        [NopResourceDisplayName("Admin.Configuration.Currencies.Fields.RoundingType")]
+        public int RoundingTypeId { get; set; }
     }
 
     public partial class CurrencyLocalizedModel : ILocalizedModelLocal

@@ -12,7 +12,9 @@ namespace Nop.Data.Mapping.Directory
             this.Property(c => c.CurrencyCode).IsRequired().HasMaxLength(5);
             this.Property(c => c.DisplayLocale).HasMaxLength(50);
             this.Property(c => c.CustomFormatting).HasMaxLength(50);
-            this.Property(c => c.Rate).HasPrecision(18, 4);
+            this.Property(c => c.Rate).HasPrecision(20, 6);
+
+            this.Ignore(c => c.RoundingType);
         }
     }
 }
